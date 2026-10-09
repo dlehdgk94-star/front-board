@@ -229,6 +229,15 @@
     if (e.key === 'Home' || e.key === 'Escape') moveMonth(0);
   });
 
+  // 창 크기에 맞춰 1920×1080 화면 전체를 축소·확대 (노트북·다른 모니터에서도 잘리지 않게)
+  function fit() {
+    const k = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.body.style.transform = `scale(${k})`;
+    document.body.style.marginLeft = `${Math.max(0, (window.innerWidth - 1920 * k) / 2)}px`;
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
   renderAll();
   setInterval(() => {
     tickClock();

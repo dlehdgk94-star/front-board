@@ -10,7 +10,8 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg)}
-body{width:1920px;height:1080px;color:var(--tx);overflow:hidden;
+html{overflow:hidden}
+body{width:1920px;height:1080px;color:var(--tx);overflow:hidden;transform-origin:0 0;
   font-family:"Pretendard","Malgun Gothic","맑은 고딕","Noto Sans CJK KR","Noto Sans KR",sans-serif}
 .wrap{padding:20px;height:100%;display:grid;gap:16px;
   grid-template-columns:minmax(0,1fr) 560px;grid-template-rows:64px 664px minmax(0,1fr)}
