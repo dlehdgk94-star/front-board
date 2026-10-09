@@ -246,11 +246,7 @@
         const past = ds < t;
         const dow = d.getDay();
         const hol = HOLIDAYS[ds];
-        let tag = '';
-        // 검토 표시는 오른쪽과 같은 범위(다음 달 ~ 다다음 달) 안에서만
-        if (!past && inAhead(ds) && isCandidate(ds)) {
-          tag = isDone(ds) ? '<div class="tag done">✓ 완료</div>' : '<div class="tag">검토</div>';
-        }
+        const tag = '';   // 큰 달력에는 검토 표시를 붙이지 않음 (오른쪽 작은 달력에서 봄)
         const cls = ['day', out ? 'out' : '', past ? 'past' : '', ds === selected ? 'sel' : ''].join(' ');
         h += `<div class="${cls}" data-d="${ds}" style="grid-column:${i + 1}">` +
           `<div class="dtop"><span class="dn ${ds === t ? 'today' : hol || dow === 0 || dow >= 5 ? 'sun' : ''}">${d.getDate()}</span>` +
