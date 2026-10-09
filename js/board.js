@@ -74,22 +74,26 @@
   }
 
   // ---- 달력 (이번 달 한 달) ----
+  let monthOffset = 0;   // 0 = 이번 달, 1 = 다음 달 ...
+  let backTimer = null;
+
   function renderCalendar(today) {
     const t = ymd(today);
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const first = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     const start = addDays(first, -first.getDay());
     const weeks = Math.ceil((first.getDay() + daysInMonth) / 7);
     const cells = weeks * 7;
     document.getElementById('calTitle').textContent =
-      `${today.getFullYear()}년 ${today.getMonth() + 1}월 행사 달력`;
+      `${first.getFullYear()}년 ${first.getMonth() + 1}월 행사 달력`;
+    document.getElementById('calToday').style.visibility = monthOffset ? 'visible' : 'hidden';
     document.getElementById('cal').dataset.weeks = weeks;
 
     let h = '';
     for (let i = 0; i < 7; i++) h += `<div class="wd ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${WD[i]}</div>`;
     for (let i = 0; i < cells; i++) {
       const d = addDays(start, i);
-      const out = d.getMonth() !== today.getMonth();
+      const out = d.getMonth() !== first.getMonth();
       const s = ymd(d);
       const lv = level(score(s));
       const evs = eventsOn(s);
@@ -208,6 +212,22 @@
     document.getElementById('foot').textContent =
       `행사 데이터: 2026.09.12 엑셀 기준 · 화면 갱신 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
+
+  // 달력 넘기기: 버튼 또는 키보드 ← →, 1분 동안 손대지 않으면 이번 달로 돌아옴
+  function moveMonth(n) {
+    monthOffset = n === 0 ? 0 : monthOffset + n;
+    renderCalendar(new Date());
+    clearTimeout(backTimer);
+    if (monthOffset) backTimer = setTimeout(() => moveMonth(0), 60 * 1000);
+  }
+  document.getElementById('calPrev').onclick = () => moveMonth(-1);
+  document.getElementById('calNext').onclick = () => moveMonth(1);
+  document.getElementById('calToday').onclick = () => moveMonth(0);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') moveMonth(1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') moveMonth(-1);
+    if (e.key === 'Home' || e.key === 'Escape') moveMonth(0);
+  });
 
   renderAll();
   setInterval(() => {
