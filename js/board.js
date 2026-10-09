@@ -4,17 +4,20 @@
   const EVENTS = window.EVENTS || [];
   const HOLIDAYS = window.HOLIDAYS || {};
   const WD = '일월화수목금토';
-  const VENUE_COLOR = { M: 'var(--vM)', C: 'var(--vC)', E: 'var(--vE)' };
-  const VENUE_NAME = { M: '수원메쎄', C: '수원컨벤션센터', E: '' };
+  const CAT_NAME = { expo: '박람회', conf: '학회·비즈니스', fest: '공연·축제' };
+  const VENUE_NAME = { M: '수원메쎄', C: '수원컨벤션센터' };
 
-  // ---- 날짜 도우미 (프론트 PC의 현지 시간 기준) ----
+  // ---------- 날짜 도우미 (프런트 PC 현지 시간) ----------
   const pad = n => String(n).padStart(2, '0');
   const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-  const diffDays = (a, b) => Math.round((parse(ymd(b)) - parse(ymd(a))) / 86400000);
-  const md = s => { const d = parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const shift = (s, n) => ymd(addDays(parse(s), n));
+  const diff = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+  const md = s => { const d = parse(s); return `${d.getMonth() + 1}.${d.getDate()}`; };
+  const mdw = s => { const d = parse(s); return `${d.getMonth() + 1}.${d.getDate()}(${WD[d.getDay()]})`; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const $ = id => document.getElementById(id);
 
   const shortName = n => n
     .replace(/\s*20\d\d\s*/g, ' ')
@@ -25,212 +28,286 @@
     .replace(/[‘’']/g, '')
     .trim();
 
-  const eventsOn = s => EVENTS.filter(e => s >= e.start && s <= e.end);
+  // 행사 종류: 박람회 / 학회·비즈니스 / 공연·축제
+  function cat(e) {
+    if (/축제|공연|문화|관광|음악/.test(e.type)) return 'fest';
+    if (e.b2b || /학술|컨퍼런스|서밋|회의/.test(e.type + e.name)) return 'conf';
+    return 'expo';
+  }
 
-  // 수요 점수: 그날 행사 가중치 합 + 금·토요일이면 +1
-  function score(s) {
-    const evs = eventsOn(s);
+  const eventsOn = s => EVENTS.filter(e => s >= e.start && s <= e.end);
+  // 숙박(밤) 기준: D일 밤에 묵는 손님은 D+1일 행사에 가는 사람
+  const nightEvents = s => eventsOn(shift(s, 1));
+  const eveEvents = s => EVENTS.filter(e => e.start === shift(s, 1));
+  // 달력·흐름에 '전날 숙박' 표시: 그날 행사가 없는 밤이거나, 다음 날 행사가 2건 이상 시작할 때만 (화면 정리용)
+  const showEve = s => { const n = eveEvents(s).length; return n >= 2 || (n === 1 && !eventsOn(s).length); };
+
+  function nightScore(s) {
+    const evs = nightEvents(s);
     if (!evs.length) return 0;
     const dow = parse(s).getDay();
-    return evs.reduce((a, e) => a + (e.weight || 1), 0) + (dow === 5 || dow === 6 ? 1 : 0);
+    let sc = evs.reduce((a, e) => a + (e.weight || 1), 0);
+    if (dow === 5 || dow === 6) sc += 1;          // 금·토 밤
+    if (HOLIDAYS[shift(s, 1)]) sc += 1;            // 공휴일 전날 밤
+    return sc;
   }
   const level = sc => (sc >= 5 ? 3 : sc >= 3 ? 2 : sc >= 1 ? 1 : 0);
+  const nightLevel = s => level(nightScore(s));
 
-  function eventPeak(e) {
-    let best = 0;
-    for (let d = parse(e.start); ymd(d) <= e.end; d = addDays(d, 1)) best = Math.max(best, level(score(ymd(d))));
-    return best;
+  function isCandidate(s) {
+    if (nightLevel(s) >= 2) return true;
+    return eveEvents(s).some(e => (e.weight || 1) >= 2);
   }
 
-  // ---- 상단바 ----
-  function renderTop(today) {
-    const t = ymd(today);
-    const dow = today.getDay();
-    const hol = HOLIDAYS[t];
-    document.getElementById('today').innerHTML =
-      `${today.getMonth() + 1}월 ${today.getDate()}일 (${WD[dow]})${hol ? `<br>${hol}` : ''}`;
+  function reason(s) {
+    const evs = nightEvents(s);
+    const counts = {};
+    evs.forEach(e => { const c = cat(e); counts[c] = (counts[c] || 0) + 1; });
+    const keys = Object.keys(counts);
+    let r = keys.length === 1
+      ? `${CAT_NAME[keys[0]]} ${counts[keys[0]]}건`
+      : keys.map(k => CAT_NAME[k].split('·')[0]).join('·') + ' 일정 중복';
+    if (eveEvents(s).length) r += ' · 전날 숙박';
+    return r;
+  }
+
+  // ---------- 검토 기록 (이 PC 브라우저에 저장, 2단계에서 서버 저장으로 이전) ----------
+  const KEY = 'frontboard.reviews.v1';
+  let REV = {};
+  try { REV = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { REV = {}; }
+  const saveRev = () => { try { localStorage.setItem(KEY, JSON.stringify(REV)); } catch (e) { /* 저장 불가 환경 */ } };
+  const isDone = s => !!(REV[s] && REV[s].done);
+
+  // ---------- 상태 ----------
+  let monthOffset = 0;
+  let view = 'cal';
+  let range = 14;
+  let selected = null;
+  let backTimer = null;
+
+  const todayStr = () => ymd(new Date());
+
+  function queueList(t, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) { const s = shift(t, i); if (isCandidate(s)) out.push(s); }
+    return out;
+  }
+
+  // ---------- 상단 ----------
+  function renderTop() {
+    const t = todayStr();
+    const d = parse(t);
+    $('today').textContent = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${WD[d.getDay()]}요일${HOLIDAYS[t] ? ' · ' + HOLIDAYS[t] : ''}`;
+
+    const q14 = queueList(t, 14);
+    $('smPending').textContent = q14.filter(s => !isDone(s)).length;
+    $('smDone').textContent = q14.filter(isDone).length;
+    let ov = 0;
+    for (let i = 0; i < 14; i++) if (nightEvents(shift(t, i)).length >= 2) ov++;
+    $('smOverlap').textContent = ov;
 
     let peak = null;
-    for (let i = 1; i <= 60 && !peak; i++) {
-      const s = ymd(addDays(today, i));
-      if (level(score(s)) === 3) peak = s;
-    }
-    const np = document.getElementById('nextPeak');
+    for (let i = 0; i < 60 && !peak; i++) { const s = shift(t, i); if (nightLevel(s) === 3) peak = s; }
     if (peak) {
-      const names = eventsOn(peak).map(e => shortName(e.name)).slice(0, 2).join(' · ');
-      np.innerHTML = `다음 대목 <b>D-${diffDays(today, parse(peak))}</b> <span class="nm">${md(peak)} ${esc(names)}</span>`;
+      const dn = diff(t, peak);
+      $('smPeak').textContent = dn === 0 ? '오늘 밤' : `D-${dn}`;
+      $('smPeakName').textContent = `${mdw(peak)} 밤 · ${nightEvents(peak).map(e => shortName(e.name)).slice(0, 2).join(', ')}`;
     } else {
-      np.innerHTML = '다음 대목 <b>없음</b> 60일 이내';
+      $('smPeak').textContent = '없음';
+      $('smPeakName').textContent = '60일 이내';
     }
-
-    const end = ymd(addDays(today, 6));
-    const n = EVENTS.filter(e => e.start <= end && e.end >= t).length;
-    document.getElementById('weekCount').innerHTML = `이번 7일 행사 <b>${n}</b>건`;
   }
 
   function tickClock() {
     const d = new Date();
-    document.getElementById('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    $('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  // ---- 달력 (이번 달 한 달) ----
-  let monthOffset = 0;   // 0 = 이번 달, 1 = 다음 달 ...
-  let backTimer = null;
-
-  function renderCalendar(today) {
-    const t = ymd(today);
-    const first = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  // ---------- 달력 ----------
+  function renderCalendar() {
+    const t = todayStr();
+    const now = parse(t);
+    const first = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const weeks = Math.ceil((first.getDay() + dim) / 7);
     const start = addDays(first, -first.getDay());
-    const weeks = Math.ceil((first.getDay() + daysInMonth) / 7);
-    const cells = weeks * 7;
-    document.getElementById('calTitle').textContent =
-      `${first.getFullYear()}년 ${first.getMonth() + 1}월 행사 달력`;
-    document.getElementById('calToday').style.visibility = monthOffset ? 'visible' : 'hidden';
-    document.getElementById('cal').dataset.weeks = weeks;
+    $('calTitle').textContent = `${first.getFullYear()}년 ${first.getMonth() + 1}월`;
 
     let h = '';
     for (let i = 0; i < 7; i++) h += `<div class="wd ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${WD[i]}</div>`;
-    for (let i = 0; i < cells; i++) {
+    for (let i = 0; i < weeks * 7; i++) {
       const d = addDays(start, i);
+      const s = ymd(d);
       const out = d.getMonth() !== first.getMonth();
-      const s = ymd(d);
-      const lv = level(score(s));
+      const lv = nightLevel(s);
       const evs = eventsOn(s);
-      const dow = d.getDay();
+      const eve = showEve(s) ? eveEvents(s) : [];
       const hol = HOLIDAYS[s];
-      const nCls = hol || dow === 0 ? 'sun' : dow === 6 ? 'sat' : '';
-      const showMonth = out && (d.getDate() === 1 || i === 0);
-      const cls = ['day', hol ? 'holi' : '', out ? 'out' : '', lv ? 'l' + lv : '', s === t ? 'today' : '', (s < t && !out) ? 'past' : ''].join(' ');
-      const cap = weeks === 6 ? 2 : 3;
-      const shown = evs.slice(0, evs.length > cap ? cap - 1 : cap).map(e =>
-        `<div class="ev"><i class="dot" style="background:${VENUE_COLOR[e.venue]}"></i>${esc(shortName(e.name))}</div>`).join('');
-      const more = evs.length > cap ? `<div class="ev more">+${evs.length - cap + 1}개 더</div>` : '';
-      h += `<div class="${cls}">` +
-        `<span class="n ${nCls}">${d.getDate()}</span>` +
-        (showMonth ? `<span class="mon">${d.getMonth() + 1}월</span>` : '') +
-        (hol ? `<span class="hol">${esc(hol)}</span>` : '') +
-        (evs.length ? `<span class="badge">${evs.length}</span>` : '') +
-        shown + more + '</div>';
+      const dow = d.getDay();
+      let cap = weeks === 6 ? 2 : 3;
+      if (eve.length) cap -= 1;
+      const shown = evs.slice(0, evs.length > cap ? cap - 1 : cap);
+      const cls = ['day', lv ? 'n' + lv : '', out ? 'out' : '', s < t && !out ? 'past' : '',
+        s === t ? 'today' : '', s === selected ? 'sel' : ''].join(' ');
+      h += `<div class="${cls}" data-d="${s}">` +
+        `<div class="dtop"><span class="dn ${hol || dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''}">${d.getDate()}</span>` +
+        (s === t ? '<span class="ttag">오늘</span>' : '') +
+        (hol ? `<span class="htag">${esc(hol)}</span>` : '') +
+        (isDone(s) ? '<span class="okc">✓</span>' : '') + '</div>' +
+        shown.map(e => `<div class="ev"><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}</div>`).join('') +
+        (evs.length > shown.length ? `<div class="ev more">+${evs.length - shown.length}개 더</div>` : '') +
+        (eve.length ? `<div class="eve">전날 숙박${eve.length > 1 ? ' · ' + eve.length + '건' : ''}</div>` : '') +
+        '</div>';
     }
-    document.getElementById('cal').innerHTML = h;
+    const cal = $('cal');
+    cal.innerHTML = h;
+    cal.querySelectorAll('.day').forEach(el => { el.onclick = () => select(el.dataset.d); });
   }
 
-  // ---- 진행 중 · 다가오는 행사 ----
-  function renderUpcoming(today) {
-    const t = ymd(today);
-    const list = EVENTS.filter(e => e.end >= t).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 6);
-    if (!list.length) {
-      document.getElementById('upcoming').innerHTML = '<div class="empty">등록된 다가오는 행사가 없어요.</div>';
-      return;
-    }
-    document.getElementById('upcoming').innerHTML = list.map(e => {
+  // ---------- 목록 보기 ----------
+  function renderList() {
+    const t = todayStr();
+    const list = EVENTS.filter(e => e.end >= t).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 11);
+    let h = '<div class="erow h"><span>D-day</span><span>행사</span><span>기간</span><span>장소</span><span>숙박하는 밤</span><span>할 일</span></div>';
+    h += list.map(e => {
+      const dn = diff(t, e.start);
       const ongoing = e.start <= t;
-      const dn = diffDays(today, parse(e.start));
-      const pk = eventPeak(e);
-      const sd = parse(e.start);
-      const dd = ongoing
-        ? `<div class="dd now"><b>진행중</b><small>~${md(e.end)}</small></div>`
-        : `<div class="dd ${pk >= 2 ? 'hot' : ''}"><b>D-${dn}</b><small>${md(e.start)} ${WD[sd.getDay()]}</small></div>`;
-      const period = e.start === e.end ? md(e.start) : `${md(e.start)}–${md(e.end)}`;
-      const place = VENUE_NAME[e.venue] || e.place;
-      return `<div class="up-item">${dd}<div>` +
-        `<div class="up-name"><span class="t">${esc(shortName(e.name))}</span><span class="stars">${'★'.repeat(pk)}</span></div>` +
-        `<div class="up-meta">${period} · ${esc(place)} · ${esc(e.type)}</div>` +
-        `<div class="up-aud">${esc(e.audience)}</div>` +
-        '</div></div>';
+      let peak = 0;
+      for (let s = shift(e.start, -1); s <= shift(e.end, -1); s = shift(s, 1)) peak = Math.max(peak, nightLevel(s));
+      const chips = [];
+      if (e.b2b && dn >= 21 && dn <= 30) chips.push('<span class="chip sales">단체 영업 타이밍</span>');
+      if ((e.weight || 1) >= 2 && dn >= 10 && dn <= 16) chips.push('<span class="chip blog">블로그 글 올릴 때</span>');
+      return `<div class="erow">` +
+        `<span class="edd ${ongoing ? 'now' : peak >= 2 ? 'hot' : ''}">${ongoing ? '진행중' : 'D-' + dn}</span>` +
+        `<span class="ename"><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}</span>` +
+        `<span class="emeta">${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''}</span>` +
+        `<span class="emeta">${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
+        `<span class="emeta">${md(shift(e.start, -1))} – ${md(shift(e.end, -1))} 밤</span>` +
+        `<span>${chips.join('') || '<span class="emeta">-</span>'}</span></div>`;
     }).join('');
+    $('elist').innerHTML = h;
   }
 
-  // ---- 앞으로 30일 수요 흐름 ----
-  function renderFlow(today) {
+  // ---------- 오른쪽: 검토 목록 ----------
+  function renderQueue() {
+    const t = todayStr();
+    const q = queueList(t, range);
+    if (!q.length) { $('queue').innerHTML = `<div class="qempty">${range}일 안에 검토할 숙박일이 없어요.</div>`; return; }
+    const show = q.slice(0, 4);
+    $('queue').innerHTML = show.map(s => {
+      const dn = diff(t, s);
+      const done = isDone(s);
+      return `<div class="qrow ${s === selected ? 'sel' : ''}" data-d="${s}">` +
+        `<div><div class="qd">${md(s)}<small>${WD[parse(s).getDay()]}</small></div>` +
+        `<div class="qdd ${dn === 0 ? 'today' : ''}">${dn === 0 ? '오늘' : 'D-' + dn}</div></div>` +
+        `<div><div class="qr">${esc(reason(s))}</div><div class="qs ${done ? 'done' : ''}">${done ? '검토 완료' : '검토 대기'}</div></div>` +
+        `<div class="cb ${done ? 'on' : ''}">${done ? '✓' : ''}</div></div>`;
+    }).join('') + (q.length > 4 ? `<div class="qmore">+ ${q.length - 4}박 더 · 달력에서 날짜를 누르면 볼 수 있어요</div>` : '');
+    $('queue').querySelectorAll('.qrow').forEach(el => { el.onclick = () => select(el.dataset.d); });
+  }
+
+  // ---------- 오른쪽: 선택한 밤 검토 ----------
+  function renderDetail() {
+    const s = selected;
+    const d = parse(s);
+    const evs = nightEvents(s);
+    const eve = eveEvents(s);
+    const rec = REV[s] || {};
+    const tag = eve.length ? '<span class="dtag">행사 전날</span>' : evs.length ? '<span class="dtag mid">행사 기간</span>' : '';
+    const list = evs.length
+      ? evs.map(e => `<div class="dev"><b><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}</b>` +
+          `<span>${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''} · ${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
+          (e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">공식 일정 ↗</a>` : '') + '</div>').join('')
+      : '<div class="dnone">다음 날 열리는 행사가 없어요.</div>';
+    $('detail').innerHTML =
+      `<div class="dhead"><h3>${d.getMonth() + 1}월 ${d.getDate()}일(${WD[d.getDay()]}) 숙박 검토</h3>${tag}</div>` +
+      `<div class="dbox">${list}</div>` +
+      `<div class="mlabel">검토 메모</div>` +
+      `<textarea id="memo" placeholder="예약 추이와 주변 요금 확인">${esc(rec.memo || '')}</textarea>` +
+      (rec.done
+        ? `<button class="okbtn undo" id="okBtn">검토 완료됨 · 다시 열기</button><div class="dmeta">완료 ${esc(rec.at || '')}</div>`
+        : `<button class="okbtn" id="okBtn">✓ 검토 완료</button>`);
+    $('memo').oninput = e => { REV[s] = Object.assign({}, REV[s], { memo: e.target.value }); saveRev(); };
+    $('okBtn').onclick = () => {
+      const now = new Date();
+      const r = Object.assign({}, REV[s]);
+      r.done = !r.done;
+      r.at = r.done ? `${now.getMonth() + 1}/${now.getDate()} ${pad(now.getHours())}:${pad(now.getMinutes())}` : '';
+      REV[s] = r; saveRev();
+      renderAll(false);
+    };
+  }
+
+  function select(s) {
+    selected = s;
+    renderCalendar(); renderQueue(); renderDetail();
+  }
+
+  // ---------- 아래: 30일 숙박 흐름 ----------
+  function renderFlow() {
+    const t = todayStr();
     const days = [];
-    for (let i = 0; i < 30; i++) {
-      const d = addDays(today, i);
-      const s = ymd(d);
-      days.push({ d, s, sc: score(s), n: eventsOn(s).length });
-    }
+    for (let i = 0; i < 30; i++) { const s = shift(t, i); days.push({ s, sc: nightScore(s) }); }
     const max = Math.max(6, ...days.map(x => x.sc));
-    document.getElementById('flow').innerHTML = days.map((x, i) =>
-      `<div class="bar l${level(x.sc)} ${i === 0 ? 'today' : ''}">` +
-      `<span class="v">${x.n ? x.n + '개' : ''}</span>` +
-      `<div class="b" style="height:${Math.round(x.sc / max * 120)}px"></div></div>`).join('');
-    document.getElementById('flowDates').innerHTML = days.map(x => {
-      const dow = x.d.getDay();
-      const cls = HOLIDAYS[x.s] || dow === 0 ? 'sun' : dow === 6 || dow === 5 ? 'we' : '';
-      return `<div class="${cls}">${x.d.getDate()}<br>${WD[dow]}</div>`;
+    $('flow').innerHTML = days.map((x, i) => {
+      const d = parse(x.s), dow = d.getDay();
+      const fd = HOLIDAYS[x.s] || dow === 0 ? 'sun' : dow === 5 || dow === 6 ? 'we' : '';
+      return `<div class="fc n${nightLevel(x.s)} ${i === 0 ? 'today' : ''}" data-d="${x.s}">` +
+        `<div class="fmk">${showEve(x.s) ? '<i class="tri"></i>' : ''}</div>` +
+        `<div class="fbar"><i style="height:${Math.round(x.sc / max * 100)}%"></i></div>` +
+        `<div class="fd ${fd}">${d.getDate()}<br>${WD[dow]}</div>` +
+        `<div class="fok">${isDone(x.s) ? '<i></i>' : ''}</div></div>`;
     }).join('');
+    $('flow').querySelectorAll('.fc').forEach(el => { el.onclick = () => select(el.dataset.d); });
   }
 
-  // ---- 할 일 알림 (행사 일정에서 자동 생성) ----
-  function renderAlerts(today) {
-    const items = [];
-    EVENTS.forEach(e => {
-      const dn = diffDays(today, parse(e.start));
-      const name = shortName(e.name);
-      if (e.b2b && dn >= 21 && dn <= 30) {
-        items.push({ p: 1, dn, ic: 'g', mark: '₩', t: `단체 영업 타이밍 · ${name}`,
-          s: `${md(e.start)} 개막 D-${dn} · 참가업체·기관에 단체 숙박 제안` });
-      }
-      if ((e.weight || 1) >= 2 && dn >= 10 && dn <= 16) {
-        const kw = (e.keywords || []).slice(0, 2).join(', ');
-        items.push({ p: 2, dn, ic: 'b', mark: 'B', t: `블로그 글 올릴 때 · ${name}`,
-          s: `D-${dn}${kw ? ' · 키워드: ' + kw : ''}` });
-      }
-    });
-    const seen = new Set();
-    for (let i = 3; i <= 14; i++) {
-      const s = ymd(addDays(today, i));
-      if (level(score(s)) !== 3) continue;
-      const names = eventsOn(s).map(e => shortName(e.name));
-      const key = names.join('|');
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const d = parse(s);
-      items.push({ p: 0, dn: i, ic: 't', mark: '₩', t: `요금 점검 · ${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]}) 대목`,
-        s: `D-${i} · ${names.slice(0, 2).join(', ')}${names.length > 2 ? ' 외' : ''}` });
-    }
-    items.sort((a, b) => a.p - b.p || a.dn - b.dn);
-    const el = document.getElementById('alerts');
-    el.innerHTML = items.length
-      ? items.slice(0, 3).map(a =>
-        `<div class="al"><div class="ic ${a.ic}">${a.mark}</div><div><div class="t">${esc(a.t)}</div><div class="s">${esc(a.s)}</div></div></div>`).join('')
-      : '<div class="empty">오늘은 알림이 없어요.</div>';
-  }
-
-  // ---- 전체 그리기 ----
+  // ---------- 전체 ----------
   let lastDay = '';
-  function renderAll() {
-    const now = new Date();
-    lastDay = ymd(now);
-    renderTop(now);
-    renderCalendar(now);
-    renderUpcoming(now);
-    renderFlow(now);
-    renderAlerts(now);
-    tickClock();
-    document.getElementById('foot').textContent =
-      `행사 데이터: 2026.09.12 엑셀 기준 · 화면 갱신 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  function renderAll(resetSel) {
+    const t = todayStr();
+    lastDay = t;
+    if (resetSel || !selected) {
+      const q = queueList(t, range);
+      selected = q.find(s => !isDone(s)) || q[0] || t;
+    }
+    renderTop(); renderCalendar(); renderList(); renderQueue(); renderDetail(); renderFlow(); tickClock();
+    $('footL').textContent = `행사 데이터: 2026.09.12 엑셀 기준 · 검토 기록은 이 PC에 저장 (2단계에서 서버 저장)`;
   }
 
-  // 달력 넘기기: 버튼 또는 키보드 ← →, 1분 동안 손대지 않으면 이번 달로 돌아옴
+  // ---------- 조작 ----------
   function moveMonth(n) {
     monthOffset = n === 0 ? 0 : monthOffset + n;
-    renderCalendar(new Date());
+    renderCalendar();
     clearTimeout(backTimer);
     if (monthOffset) backTimer = setTimeout(() => moveMonth(0), 60 * 1000);
   }
-  document.getElementById('calPrev').onclick = () => moveMonth(-1);
-  document.getElementById('calNext').onclick = () => moveMonth(1);
-  document.getElementById('calToday').onclick = () => moveMonth(0);
+  $('calPrev').onclick = () => moveMonth(-1);
+  $('calNext').onclick = () => moveMonth(1);
+  $('calToday').onclick = () => moveMonth(0);
   document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') moveMonth(1);
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') moveMonth(-1);
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight') moveMonth(1);
+    if (e.key === 'ArrowLeft') moveMonth(-1);
     if (e.key === 'Home' || e.key === 'Escape') moveMonth(0);
   });
+  function setView(v) {
+    view = v;
+    $('calView').classList.toggle('hidden', v !== 'cal');
+    $('listView').classList.toggle('hidden', v !== 'list');
+    $('vCal').classList.toggle('on', v === 'cal');
+    $('vList').classList.toggle('on', v === 'list');
+  }
+  $('vCal').onclick = () => setView('cal');
+  $('vList').onclick = () => setView('list');
+  $('range').onchange = e => { range = Number(e.target.value); renderTop(); renderQueue(); };
+  $('addBtn').onclick = () => {
+    const el = $('toast');
+    el.textContent = '행사 등록은 2단계(서버 연결)에서 열려요. 지금은 data/events.js에 추가해요.';
+    el.classList.add('on');
+    setTimeout(() => el.classList.remove('on'), 3000);
+  };
 
-  // 창 크기에 맞추기: 높이 1080 기준으로 맞추고, 남는 가로 폭은 달력이 넓어지며 채움
-  // (창이 너무 좁으면 가로 1600 기준으로 맞추고 아래쪽이 늘어남)
+  // 창 크기 맞춤: 높이 1080 기준, 남는 가로는 달력이 채움
   function fit() {
     const W = window.innerWidth, H = window.innerHeight;
     let k = H / 1080;
@@ -238,15 +315,18 @@
     document.body.style.width = `${W / k}px`;
     document.body.style.height = `${H / k}px`;
     document.body.style.transform = `scale(${k})`;
-    document.body.style.marginLeft = '0px';
   }
   window.addEventListener('resize', fit);
   fit();
 
-  renderAll();
+  renderAll(true);
   setInterval(() => {
     tickClock();
-    if (ymd(new Date()) !== lastDay) renderAll(); // 자정 지나면 날짜·D-day 다시 계산
+    if (todayStr() !== lastDay) renderAll(true);   // 자정이 지나면 다시 계산
   }, 15000);
-  setTimeout(() => location.reload(), 30 * 60 * 1000); // 30분마다 새로 불러오기 (새 데이터·수정 반영)
+  // 30분마다 새로 불러오기 (메모 입력 중이면 미룸)
+  setInterval(() => {
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+    location.reload();
+  }, 30 * 60 * 1000);
 })();

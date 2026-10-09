@@ -4,68 +4,105 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>인스타호텔 행사·요금 보드</title>
-<link rel="stylesheet" href="css/board.css?v=3">
+<title>호텔인스타 프런트 행사 보드</title>
+<link rel="stylesheet" href="css/board.css?v=4">
 </head>
 <body>
 <div class="wrap">
 
+  <!-- 상단 -->
   <header class="top">
     <div class="brand">
-      <div class="logo">IN</div>
-      <h1>인스타호텔 행사·요금 보드<span>프론트 전용</span></h1>
+      <h1>호텔인스타 본점</h1>
+      <span class="sep"></span>
+      <h2>프런트 행사 보드</h2>
     </div>
-    <div class="stats">
-      <div class="chip gold" id="nextPeak"></div>
-      <div class="chip" id="weekCount"></div>
-      <div class="date" id="today"></div>
-      <div class="clock" id="clock"></div>
+    <div class="topr">
+      <span class="staff">직원 전용</span>
+      <span class="vline"></span>
+      <span class="date" id="today"></span>
+      <span class="clock" id="clock"></span>
+      <button class="addbtn" id="addBtn">+ 행사 등록</button>
     </div>
   </header>
 
-  <section class="panel cal-wrap">
-    <div class="ttl">
+  <!-- 요약 줄 -->
+  <section class="summary">
+    <div class="sm"><span class="smk">14일 내 검토 대기</span><b class="gold" id="smPending">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk">행사 겹치는 밤</span><b class="gold" id="smOverlap">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk">검토 완료</span><b class="green" id="smDone">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk">다음 대목</span><b class="gold" id="smPeak">-</b><span class="smu" id="smPeakName"></span></div>
+    <div class="smnote">행사 일정 기준 검토 대상 · 실제 수요 예측 아님</div>
+  </section>
+
+  <!-- 달력 / 목록 -->
+  <section class="panel main">
+    <div class="mhead">
       <div class="calnav">
         <button id="calPrev" aria-label="이전 달">‹</button>
-        <span id="calTitle">행사 달력</span>
         <button id="calNext" aria-label="다음 달">›</button>
-        <button id="calToday" class="todaybtn">이번 달로</button>
+        <button id="calToday" class="ghost">오늘</button>
+        <span id="calTitle" class="ctitle"></span>
       </div>
-      <small>칸이 진할수록 수요 높음 · 숫자 배지는 행사 수</small>
+      <div class="legend">
+        <span><i class="dot c-expo"></i>박람회</span>
+        <span><i class="dot c-conf"></i>학회·비즈니스</span>
+        <span><i class="dot c-fest"></i>공연·축제</span>
+        <span><i class="eve-sw"></i>전날 숙박</span>
+        <span><i class="ok-sw">✓</i>검토 완료</span>
+        <span class="lvl"><i class="sw n1"></i><i class="sw n2"></i><i class="sw n3"></i>숙박 수요</span>
+      </div>
+      <div class="viewtg">
+        <button id="vCal" class="on">달력</button>
+        <button id="vList">목록</button>
+      </div>
     </div>
-    <div class="cal" id="cal"></div>
-    <div class="legend">
-      <span><span class="sw" style="background:var(--panel2)"></span>행사 없음</span>
-      <span><span class="sw" style="background:var(--h1)"></span>수요 낮음</span>
-      <span><span class="sw" style="background:var(--h2)"></span>수요 보통</span>
-      <span><span class="sw" style="background:var(--h3)"></span>대목</span>
-      <span><i class="dot" style="background:var(--vM)"></i>수원메쎄</span>
-      <span><i class="dot" style="background:var(--vC)"></i>수원컨벤션센터</span>
-      <span><i class="dot" style="background:var(--vE)"></i>수원화성·기타</span>
-      <span class="push"><span class="sw" style="border:2px solid var(--blue)"></span>오늘</span>
+    <div id="calView">
+      <div class="cal" id="cal"></div>
+    </div>
+    <div id="listView" class="hidden">
+      <div class="elist" id="elist"></div>
     </div>
   </section>
 
-  <section class="panel">
-    <div class="ttl">진행 중 · 다가오는 행사 <small>시작일 순</small></div>
-    <div id="upcoming"></div>
-  </section>
+  <!-- 오른쪽: 검토 -->
+  <aside class="side">
+    <section class="panel queue">
+      <div class="shead">
+        <h3>먼저 검토할 숙박일</h3>
+        <select id="range">
+          <option value="7">7일 이내</option>
+          <option value="14" selected>14일 이내</option>
+          <option value="30">30일 이내</option>
+        </select>
+      </div>
+      <div id="queue"></div>
+    </section>
 
-  <section class="panel wide">
-    <div class="ttl">앞으로 30일 수요 흐름 <small>행사 수·규모·주말을 합친 점수 · 3단계에서 실제 예약 수로 바뀌어요</small></div>
+    <section class="panel detail" id="detail"></section>
+  </aside>
+
+  <!-- 아래: 30일 숙박 흐름 -->
+  <section class="panel flowp">
+    <div class="fhead">
+      <h3>앞으로 30일 · 숙박 수요 흐름</h3>
+      <div class="legend sm2">
+        <span><i class="sw n2"></i>행사 겹침</span>
+        <span><i class="tri"></i>전날 숙박</span>
+        <span><i class="gdot"></i>검토 완료</span>
+      </div>
+    </div>
     <div class="flow" id="flow"></div>
-    <div class="dl" id="flowDates"></div>
   </section>
 
-  <section class="panel">
-    <div class="ttl">할 일 알림 <small>행사 일정으로 자동 생성</small></div>
-    <div id="alerts"></div>
-  </section>
-
+  <footer class="foot">
+    <span id="footL"></span>
+    <span>가격 변경은 판매 채널(VCMS)에서 별도 진행</span>
+  </footer>
 </div>
-<div class="foot" id="foot"></div>
+<div class="toast" id="toast"></div>
 
-<script src="data/events.js?v=3"></script>
-<script src="js/board.js?v=3"></script>
+<script src="data/events.js?v=4"></script>
+<script src="js/board.js?v=4"></script>
 </body>
 </html>
