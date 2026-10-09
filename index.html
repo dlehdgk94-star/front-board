@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920">
+<meta name="robots" content="noindex, nofollow">
+<title>인스타호텔 행사·요금 보드</title>
+<link rel="stylesheet" href="css/board.css?v=1">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">IN</div>
+      <h1>인스타호텔 행사·요금 보드<span>프론트 전용</span></h1>
+    </div>
+    <div class="stats">
+      <div class="chip gold" id="nextPeak"></div>
+      <div class="chip" id="weekCount"></div>
+      <div class="date" id="today"></div>
+      <div class="clock" id="clock"></div>
+    </div>
+  </header>
+
+  <section class="panel cal-wrap">
+    <div class="ttl"><span id="calTitle">앞으로 5주 행사 달력</span><small>칸이 진할수록 수요 높음 · 숫자 배지는 행사 수</small></div>
+    <div class="cal" id="cal"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--panel2)"></span>행사 없음</span>
+      <span><span class="sw" style="background:var(--h1)"></span>수요 낮음</span>
+      <span><span class="sw" style="background:var(--h2)"></span>수요 보통</span>
+      <span><span class="sw" style="background:var(--h3)"></span>대목</span>
+      <span><i class="dot" style="background:var(--vM)"></i>수원메쎄</span>
+      <span><i class="dot" style="background:var(--vC)"></i>수원컨벤션센터</span>
+      <span><i class="dot" style="background:var(--vE)"></i>수원화성·기타</span>
+      <span class="push"><span class="sw" style="border:2px solid var(--blue)"></span>오늘</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ttl">진행 중 · 다가오는 행사 <small>시작일 순</small></div>
+    <div id="upcoming"></div>
+  </section>
+
+  <section class="panel wide">
+    <div class="ttl">앞으로 30일 수요 흐름 <small>행사 수·규모·주말을 합친 점수 · 3단계에서 실제 예약 수로 바뀌어요</small></div>
+    <div class="flow" id="flow"></div>
+    <div class="dl" id="flowDates"></div>
+  </section>
+
+  <section class="panel">
+    <div class="ttl">할 일 알림 <small>행사 일정으로 자동 생성</small></div>
+    <div id="alerts"></div>
+  </section>
+
+</div>
+<div class="foot" id="foot"></div>
+
+<script src="data/events.js?v=1"></script>
+<script src="js/board.js?v=1"></script>
+</body>
+</html>

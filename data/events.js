@@ -1,0 +1,487 @@
+// 수원 행사 데이터 (2026.09.12 엑셀 기준)
+// venue: M=수원메쎄, C=수원컨벤션센터, E=수원화성·기타
+// weight: 수요 가중치 (1=보통, 2=높음) — 메쎄·컨벤션·대형축제는 2
+// b2b: true면 D-30~21일에 "단체 영업 타이밍" 알림
+// keywords: 블로그 글 알림에 보여줄 숙박 키워드
+window.EVENTS = [
+ {
+  "name": "2026 수원화성 미디어아트",
+  "start": "2026-09-19",
+  "end": "2026-10-06",
+  "place": "화서문·장안공원·장안문",
+  "venue": "E",
+  "type": "야간 문화축제",
+  "audience": "서울·경기 가족·커플 관광객",
+  "url": "https://www.swcf.or.kr/hlfl/?p=9",
+  "weight": 1,
+  "b2b": false,
+  "keywords": [
+   "수원화성 미디어아트 숙소",
+   "수원화성 미디어아트 호텔",
+   "수원화성 호텔"
+  ]
+ },
+ {
+  "name": "여호와의 증인 대회 ‘영원한 행복’",
+  "start": "2026-09-25",
+  "end": "2026-09-27",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "종교·대형집회",
+  "audience": "전국 참가자·가족 단위",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메쎄 대회 숙소",
+   "수원메쎄 호텔",
+   "영원한 행복 수원 모텔"
+  ]
+ },
+ {
+  "name": "2026 수원가구박람회",
+  "start": "2026-10-01",
+  "end": "2026-10-04",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "소비재 박람회",
+  "audience": "전국 관람객·업체 관계자",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원가구박람회 숙소",
+   "수원가구박람회 호텔",
+   "수원컨벤션센터 호텔"
+  ]
+ },
+ {
+  "name": "제28회 제일창업박람회 in 수원",
+  "start": "2026-10-01",
+  "end": "2026-10-03",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "창업·프랜차이즈",
+  "audience": "예비창업자·브랜드 관계자",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 창업박람회 숙소",
+   "수원메쎄 창업박람회 호텔",
+   "수원메쎄 호텔"
+  ]
+ },
+ {
+  "name": "역북 서희스타힐스 프라임시티 입주박람회",
+  "start": "2026-10-02",
+  "end": "2026-10-04",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "입주박람회",
+  "audience": "입주 예정자·협력업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메쎄 호텔",
+   "역북 입주박람회 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "정조대왕 능행차 공동재현",
+  "start": "2026-10-04",
+  "end": "2026-10-04",
+  "place": "수원 구간·행궁광장",
+  "venue": "E",
+  "type": "역사·관광축제",
+  "audience": "서울·경기·전국 관광객",
+  "url": "https://www.swcf.or.kr/?p=244",
+  "weight": 1,
+  "b2b": false,
+  "keywords": [
+   "정조대왕 능행차 숙소",
+   "정조대왕 능행차 호텔",
+   "정조대왕 능행차 모텔"
+  ]
+ },
+ {
+  "name": "2026 수원화성문화제",
+  "start": "2026-10-04",
+  "end": "2026-10-11",
+  "place": "수원화성·행궁동 일원",
+  "venue": "E",
+  "type": "대표 관광축제",
+  "audience": "전국 가족·커플·외국인 관광객",
+  "url": "https://shfestival.com/98",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원화성문화제 숙소",
+   "수원화성문화제 호텔",
+   "수원화성문화제 모텔"
+  ]
+ },
+ {
+  "name": "2026 경기도 소방장비 전시회",
+  "start": "2026-10-07",
+  "end": "2026-10-08",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "산업·공공 전시",
+  "audience": "소방·공공기관·장비업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "소방장비 전시회 숙소",
+   "소방장비 전시회 호텔",
+   "수원메쎄 호텔"
+  ]
+ },
+ {
+  "name": "2026 수원캠핑카쇼",
+  "start": "2026-10-09",
+  "end": "2026-10-11",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "레저 박람회",
+  "audience": "전국 캠핑족·업체 관계자",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원캠핑카쇼 숙소",
+   "수원캠핑카쇼 호텔",
+   "수원캠핑카쇼 모텔"
+  ]
+ },
+ {
+  "name": "다흑×생물도감 바이오 엑스포 in 수원",
+  "start": "2026-10-10",
+  "end": "2026-10-11",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "생물·체험 전시",
+  "audience": "가족·마니아 관람객",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 바이오 엑스포 가족 숙소",
+   "수원 바이오 엑스포 호텔",
+   "다흑 바이오 엑스포 모텔"
+  ]
+ },
+ {
+  "name": "2026 경기 스타트업 서밋(G-SUMMIT)",
+  "start": "2026-10-14",
+  "end": "2026-10-15",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "글로벌 비즈니스",
+  "audience": "국내외 스타트업·투자자·기관",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "경기 스타트업 서밋 숙소",
+   "경기 스타트업 서밋 호텔",
+   "경기 스타트업 서밋 모텔"
+  ]
+ },
+ {
+  "name": "2026 한국소방기술사회 컨퍼런스&엑스포",
+  "start": "2026-10-14",
+  "end": "2026-10-16",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "전문가 컨퍼런스",
+  "audience": "소방기술사·업체·기관",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "소방기술사회 컨퍼런스 숙소",
+   "소방기술사회 컨퍼런스 호텔",
+   "소방기술사회 컨퍼런스 모텔"
+  ]
+ },
+ {
+  "name": "2026 수원 인디뮤직 페스티벌",
+  "start": "2026-10-17",
+  "end": "2026-10-18",
+  "place": "장소 미확인",
+  "venue": "E",
+  "type": "공연·음악",
+  "audience": "타지역 관객·출연진",
+  "url": "https://kr.trip.com/events/9773088-2026-10-17-suwon-indie-music-festival/",
+  "weight": 1,
+  "b2b": false,
+  "keywords": [
+   "수원 인디뮤직 페스티벌 숙소",
+   "수원 인디뮤직 페스티벌 호텔",
+   "수원 인디뮤직 페스티벌 모텔"
+  ]
+ },
+ {
+  "name": "마이펫페어 2026 광교",
+  "start": "2026-10-23",
+  "end": "2026-10-25",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "반려동물 박람회",
+  "audience": "전국 반려인·브랜드 관계자",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "마이펫페어 광교 숙소",
+   "마이펫페어 광교 호텔",
+   "마이펫페어 광교 모텔"
+  ]
+ },
+ {
+  "name": "코믹월드 338 수원",
+  "start": "2026-10-24",
+  "end": "2026-10-25",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "서브컬처 행사",
+  "audience": "전국 참가자·셀러·관람객",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 코믹월드 숙소",
+   "수원 코믹월드 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "대한화학회 제138회 총회·학술대회",
+  "start": "2026-10-28",
+  "end": "2026-10-30",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "전국 학술대회",
+  "audience": "연구자·교수·대학원생·기업",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "대한화학회 학술대회 숙소",
+   "대한화학회 학술대회 호텔",
+   "대한화학회 학술대회 모텔"
+  ]
+ },
+ {
+  "name": "국제 연구산업 컨벤션 2026",
+  "start": "2026-10-28",
+  "end": "2026-10-29",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "연구산업·B2B",
+  "audience": "국내외 연구기관·기업·바이어",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "국제 연구산업 컨벤션 숙소",
+   "국제 연구산업 컨벤션 호텔",
+   "국제 연구산업 컨벤션 모텔"
+  ]
+ },
+ {
+  "name": "제14회 수원 케이팜",
+  "start": "2026-10-29",
+  "end": "2026-10-31",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "농업·귀농 박람회",
+  "audience": "전국 농업인·귀농귀촌 관심층",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 케이팜 숙소",
+   "수원 케이팜 호텔",
+   "수원 케이팜 모텔"
+  ]
+ },
+ {
+  "name": "궁디팡팡 캣페스타 수원",
+  "start": "2026-10-30",
+  "end": "2026-11-01",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "반려묘 박람회",
+  "audience": "전국 애묘인·브랜드 관계자",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "궁디팡팡 수원 숙소",
+   "궁디팡팡 수원 호텔",
+   "궁디팡팡 수원 모텔"
+  ]
+ },
+ {
+  "name": "BeautySum Korea Suwon",
+  "start": "2026-11-05",
+  "end": "2026-11-07",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "글로벌 뷰티·B2B",
+  "audience": "해외 바이어·유통사·투자자·기업",
+  "url": "https://beautysumkorea.com/beautysum/intro/",
+  "weight": 2,
+  "b2b": true,
+  "keywords": [
+   "뷰티썸 코리아 수원 모텔",
+   "수원컨벤션센터 모텔"
+  ]
+ },
+ {
+  "name": "지제역 반도체밸리 쌍용 더 플래티넘 입주박람회",
+  "start": "2026-11-06",
+  "end": "2026-11-08",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "입주박람회",
+  "audience": "입주 예정자·협력업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메쎄 호텔",
+   "쌍용 더 플래티넘 입주박람회 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "2026 수원주류페스타",
+  "start": "2026-11-07",
+  "end": "2026-11-08",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "주류 박람회",
+  "audience": "수도권·전국 관람객·업계",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원주류페스타 숙소",
+   "수원주류페스타 호텔",
+   "수원주류페스타 모텔"
+  ]
+ },
+ {
+  "name": "지제역 반도체밸리 해링턴플레이스 입주박람회",
+  "start": "2026-11-13",
+  "end": "2026-11-15",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "입주박람회",
+  "audience": "입주 예정자·협력업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메쎄 호텔",
+   "해링턴플레이스 입주박람회 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "평택 브레인시티 대광로제비앙 입주박람회",
+  "start": "2026-11-20",
+  "end": "2026-11-22",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "입주박람회",
+  "audience": "입주 예정자·협력업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메쎄 호텔",
+   "대광로제비앙 입주박람회 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "2026 경기미 쌀 디저트 페스타",
+  "start": "2026-11-21",
+  "end": "2026-11-22",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "식품·지역축제",
+  "audience": "가족·디저트 관심층·업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 디저트 페스타 가족 숙소",
+   "수원 디저트 페스타 호텔",
+   "쌀 디저트 페스타 모텔"
+  ]
+ },
+ {
+  "name": "수원 코베 베이비페어&유아교육전",
+  "start": "2026-11-26",
+  "end": "2026-11-29",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "육아 박람회",
+  "audience": "전국 영유아 가족·업체",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 코베 베이비페어 숙소",
+   "수원 코베 베이비페어 모텔",
+   "수원메쎄 모텔"
+  ]
+ },
+ {
+  "name": "수원메가쇼 2026 시즌2",
+  "start": "2026-12-03",
+  "end": "2026-12-06",
+  "place": "수원컨벤션센터",
+  "venue": "C",
+  "type": "대형 소비재 박람회",
+  "audience": "전국 관람객·셀러·업체",
+  "url": "https://www.scc.or.kr/events-3/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원메가쇼 숙소",
+   "수원메가쇼 모텔",
+   "수원컨벤션센터 모텔"
+  ]
+ },
+ {
+  "name": "2026 수원 일러스트코리아",
+  "start": "2026-12-11",
+  "end": "2026-12-13",
+  "place": "수원메쎄",
+  "venue": "M",
+  "type": "일러스트·디자인",
+  "audience": "전국 작가·셀러·관람객",
+  "url": "https://suwonmesse.com/",
+  "weight": 2,
+  "b2b": false,
+  "keywords": [
+   "수원 일러스트코리아 모텔",
+   "수원메쎄 모텔"
+  ]
+ }
+];
+
+// 공휴일
+window.HOLIDAYS = {
+ "2026-10-03": "개천절", "2026-10-09": "한글날", "2026-12-25": "성탄절",
+ "2027-01-01": "신정"
+};
