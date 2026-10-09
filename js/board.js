@@ -229,11 +229,16 @@
     if (e.key === 'Home' || e.key === 'Escape') moveMonth(0);
   });
 
-  // 창 크기에 맞춰 1920×1080 화면 전체를 축소·확대 (노트북·다른 모니터에서도 잘리지 않게)
+  // 창 크기에 맞추기: 높이 1080 기준으로 맞추고, 남는 가로 폭은 달력이 넓어지며 채움
+  // (창이 너무 좁으면 가로 1600 기준으로 맞추고 아래쪽이 늘어남)
   function fit() {
-    const k = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const W = window.innerWidth, H = window.innerHeight;
+    let k = H / 1080;
+    if (W / k < 1600) k = W / 1600;
+    document.body.style.width = `${W / k}px`;
+    document.body.style.height = `${H / k}px`;
     document.body.style.transform = `scale(${k})`;
-    document.body.style.marginLeft = `${Math.max(0, (window.innerWidth - 1920 * k) / 2)}px`;
+    document.body.style.marginLeft = '0px';
   }
   window.addEventListener('resize', fit);
   fit();
