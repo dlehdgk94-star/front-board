@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const EVENTS = window.EVENTS || [];
+  let EVENTS = [];   // Supabase board_events 에서 불러옴
   const HOLIDAYS = window.HOLIDAYS || {};
   const WD = '일월화수목금토';
   const CAT_NAME = { expo: '박람회', conf: '학회·비즈니스', fest: '공연·축제' };
@@ -30,6 +30,7 @@
 
   // 행사 종류: 박람회 / 학회·비즈니스 / 공연·축제
   function cat(e) {
+    if (e.category) return e.category;
     if (/축제|공연|문화|관광|음악/.test(e.type)) return 'fest';
     if (e.b2b || /학술|컨퍼런스|서밋|회의/.test(e.type + e.name)) return 'conf';
     return 'expo';
@@ -71,12 +72,76 @@
     return r;
   }
 
-  // ---------- 검토 기록 (이 PC 브라우저에 저장, 2단계에서 서버 저장으로 이전) ----------
-  const KEY = 'frontboard.reviews.v1';
+  // ---------- Supabase 연결 ----------
+  const CFG = window.BOARD_CONFIG;
+  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  let userEmail = '';
+  let lastSync = null;
+
+  function toast(msg, ms) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => el.classList.remove('on'), ms || 3000);
+  }
+
+  // ---------- 검토 기록 (Supabase board_reviews, 모든 PC 공유) ----------
   let REV = {};
-  try { REV = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { REV = {}; }
-  const saveRev = () => { try { localStorage.setItem(KEY, JSON.stringify(REV)); } catch (e) { /* 저장 불가 환경 */ } };
   const isDone = s => !!(REV[s] && REV[s].done);
+  const fmtAt = iso => { if (!iso) return ''; const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+  async function saveNight(s) {
+    const r = REV[s] || {};
+    const { error } = await sb.from('board_reviews').upsert({
+      night: s, done: !!r.done, memo: r.memo || '',
+      done_at: r.done ? (r.doneAt || new Date().toISOString()) : null,
+      updated_at: new Date().toISOString()
+    });
+    if (error) toast('저장하지 못했어요. 인터넷 연결을 확인해 주세요.');
+  }
+  const memoTimers = {};
+  const saveMemoSoon = s => { clearTimeout(memoTimers[s]); memoTimers[s] = setTimeout(() => saveNight(s), 800); };
+
+  // 예전에 이 PC 브라우저에만 저장했던 검토 기록이 있으면 서버로 옮김 (한 번만)
+  async function migrateLocal() {
+    let old = null;
+    try { old = JSON.parse(localStorage.getItem('frontboard.reviews.v1') || 'null'); } catch (e) { old = null; }
+    if (!old) return;
+    const rows = Object.keys(old).filter(k => !REV[k]).map(k => ({
+      night: k, done: !!old[k].done, memo: old[k].memo || '', done_at: old[k].done ? new Date().toISOString() : null
+    }));
+    if (rows.length) {
+      const { error } = await sb.from('board_reviews').upsert(rows);
+      if (error) return;
+      rows.forEach(r => { REV[r.night] = { done: r.done, memo: r.memo, doneAt: r.done_at, at: fmtAt(r.done_at) }; });
+    }
+    try { localStorage.removeItem('frontboard.reviews.v1'); } catch (e) { /* 무시 */ }
+  }
+
+  // ---------- 데이터 불러오기 ----------
+  async function loadData() {
+    const [ev, rv] = await Promise.all([
+      sb.from('board_events').select('*').eq('status', 'active').order('start_date'),
+      sb.from('board_reviews').select('*')
+    ]);
+    if (ev.error || rv.error) {
+      const err = ev.error || rv.error;
+      if (err && /JWT|auth|permission|401/i.test(err.message + (err.code || ''))) { showLogin(); return false; }
+      toast('데이터를 불러오지 못했어요. 1분 뒤 다시 시도해요.', 5000);
+      setTimeout(refresh, 60 * 1000);
+      return false;
+    }
+    EVENTS = ev.data.map(r => ({
+      id: r.id, name: r.name, start: r.start_date, end: r.end_date, place: r.place || '',
+      venue: r.venue || 'E', category: r.category, type: r.type || '', audience: r.audience || '',
+      url: r.url || '', weight: r.weight || 1, b2b: !!r.b2b, keywords: r.keywords || [], source: r.source
+    }));
+    REV = {};
+    rv.data.forEach(r => { REV[r.night] = { done: r.done, memo: r.memo || '', doneAt: r.done_at, at: fmtAt(r.done_at) }; });
+    lastSync = new Date();
+    return true;
+  }
 
   // ---------- 상태 ----------
   let monthOffset = 0;
@@ -181,8 +246,8 @@
       placed.forEach(x => {
         const c1 = diff(ws, x.a) + 1, c2 = diff(ws, x.b) + 2;
         const cont = (x.a !== x.e.start ? ' contL' : '') + (x.b !== x.e.end ? ' contR' : '');
-        h += `<div class="bar b-${cat(x.e)}${cont}${showPast && x.b < t ? ' pastbar' : ''}" data-d="${x.a}" ` +
-          `style="grid-column:${c1}/${c2};grid-row:${x.L + 2}" title="${esc(x.e.name)}">${esc(shortName(x.e.name))}</div>`;
+        h += `<div class="bar b-${cat(x.e)}${cont}${x.e.source === 'ai' ? ' ai' : ''}${showPast && x.b < t ? ' pastbar' : ''}" data-d="${x.a}" ` +
+          `style="grid-column:${c1}/${c2};grid-row:${x.L + 2}" title="${esc(x.e.name)}">${x.e.source === 'ai' && x.a === x.e.start ? '<em>AI</em>' : ''}${esc(shortName(x.e.name))}</div>`;
       });
       h += '</div>';
     }
@@ -208,7 +273,7 @@
       if ((e.weight || 1) >= 2 && dn >= 10 && dn <= 16) chips.push('<span class="chip blog">블로그 글 올릴 때</span>');
       return `<div class="erow">` +
         `<span class="edd ${ongoing ? 'now' : peak >= 2 ? 'hot' : ''}">${ongoing ? '진행중' : 'D-' + dn}</span>` +
-        `<span class="ename"><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}</span>` +
+        `<span class="ename"><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</span>` +
         `<span class="emeta">${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''}</span>` +
         `<span class="emeta">${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
         `<span class="emeta">${md(shift(e.start, -1))} – ${md(shift(e.end, -1))} 밤</span>` +
@@ -244,9 +309,10 @@
     const rec = REV[s] || {};
     const tag = eve.length ? '<span class="dtag">행사 전날</span>' : evs.length ? '<span class="dtag mid">행사 기간</span>' : '';
     const list = evs.length
-      ? evs.map(e => `<div class="dev"><b><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}</b>` +
+      ? evs.map(e => `<div class="dev"><b><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</b>` +
           `<span>${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''} · ${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
-          (e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">공식 일정 ↗</a>` : '') + '</div>').join('')
+          (e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">공식 일정 ↗</a>` : '') +
+          `<button class="hidebtn" data-id="${e.id}">숨기기</button></div>`).join('')
       : '<div class="dnone">다음 날 열리는 행사가 없어요.</div>';
     $('detail').innerHTML =
       `<div class="dhead"><h3>${d.getMonth() + 1}월 ${d.getDate()}일(${WD[d.getDay()]}) 숙박 검토</h3>${tag}</div>` +
@@ -256,13 +322,29 @@
       (rec.done
         ? `<button class="okbtn undo" id="okBtn">검토 완료됨 · 다시 열기</button><div class="dmeta">완료 ${esc(rec.at || '')}</div>`
         : `<button class="okbtn" id="okBtn">✓ 검토 완료</button>`);
-    $('memo').oninput = e => { REV[s] = Object.assign({}, REV[s], { memo: e.target.value }); saveRev(); };
+    $('memo').oninput = e => { REV[s] = Object.assign({}, REV[s], { memo: e.target.value }); saveMemoSoon(s); };
+    $('detail').querySelectorAll('.hidebtn').forEach(btn => {
+      btn.onclick = async () => {
+        if (!btn.classList.contains('arm')) {            // 실수 방지: 두 번 눌러야 숨김
+          btn.classList.add('arm'); btn.textContent = '한 번 더 누르면 숨겨요';
+          setTimeout(() => { btn.classList.remove('arm'); btn.textContent = '숨기기'; }, 4000);
+          return;
+        }
+        const { error } = await sb.from('board_events').update({ status: 'hidden', updated_at: new Date().toISOString() }).eq('id', btn.dataset.id);
+        if (error) { toast('숨기지 못했어요. 다시 시도해 주세요.'); return; }
+        toast('행사를 숨겼어요. Supabase에서 status를 active로 바꾸면 다시 보여요.', 4000);
+        await refresh();
+      };
+    });
     $('okBtn').onclick = () => {
-      const now = new Date();
       const r = Object.assign({}, REV[s]);
+      r.memo = $('memo').value;
       r.done = !r.done;
-      r.at = r.done ? `${now.getMonth() + 1}/${now.getDate()} ${pad(now.getHours())}:${pad(now.getMinutes())}` : '';
-      REV[s] = r; saveRev();
+      r.doneAt = r.done ? new Date().toISOString() : null;
+      r.at = fmtAt(r.doneAt);
+      REV[s] = r;
+      clearTimeout(memoTimers[s]);
+      saveNight(s);
       renderAll(false);
     };
   }
@@ -282,7 +364,9 @@
       selected = q.find(s => !isDone(s)) || q[0] || t;
     }
     renderTop(); renderCalendar(); renderList(); renderQueue(); renderDetail(); tickClock();
-    $('footL').textContent = `행사 데이터: 2026.09.12 엑셀 기준 · 검토 기록은 이 PC에 저장 (2단계에서 서버 저장)`;
+    const ai = EVENTS.filter(e => e.source === 'ai').length;
+    $('footL').textContent = `행사 ${EVENTS.length}건${ai ? ' (AI 추가 ' + ai + '건)' : ''} · 검토 기록은 모든 PC 공유` +
+      (lastSync ? ` · 마지막 동기화 ${pad(lastSync.getHours())}:${pad(lastSync.getMinutes())}` : '');
   }
 
   // ---------- 조작 ----------
@@ -296,7 +380,8 @@
   $('calNext').onclick = () => moveMonth(1);
   $('calToday').onclick = () => moveMonth(0);
   document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'Escape' && !$('addModal').classList.contains('hidden')) { $('addModal').classList.add('hidden'); return; }
+    if (['TEXTAREA', 'SELECT', 'INPUT'].includes(e.target.tagName)) return;
     if (e.key === 'ArrowRight') moveMonth(1);
     if (e.key === 'ArrowLeft') moveMonth(-1);
     if (e.key === 'Home' || e.key === 'Escape') moveMonth(0);
@@ -311,11 +396,63 @@
   $('vCal').onclick = () => setView('cal');
   $('vList').onclick = () => setView('list');
   $('range').onchange = e => { range = Number(e.target.value); renderTop(); renderQueue(); renderCalendar(); };
-  $('addBtn').onclick = () => {
-    const el = $('toast');
-    el.textContent = '행사 등록은 2단계(서버 연결)에서 열려요. 지금은 data/events.js에 추가해요.';
-    el.classList.add('on');
-    setTimeout(() => el.classList.remove('on'), 3000);
+  // ---------- 행사 등록 창 ----------
+  function openAdd() {
+    $('addForm').reset();
+    $('fErr').textContent = '';
+    $('addModal').classList.remove('hidden');
+    setTimeout(() => $('fName').focus(), 50);
+  }
+  const closeAdd = () => $('addModal').classList.add('hidden');
+  $('addBtn').onclick = openAdd;
+  $('fCancel').onclick = closeAdd;
+  $('fStart').onchange = () => { if (!$('fEnd').value || $('fEnd').value < $('fStart').value) $('fEnd').value = $('fStart').value; };
+  $('addForm').onsubmit = async ev => {
+    ev.preventDefault();
+    const name = $('fName').value.trim(), start = $('fStart').value, end = $('fEnd').value || start;
+    const venue = $('fVenue').value, category = $('fCat').value;
+    if (!name || !start) { $('fErr').textContent = '행사명과 시작일을 입력해 주세요.'; return; }
+    if (end < start) { $('fErr').textContent = '종료일이 시작일보다 빨라요.'; return; }
+    const row = {
+      name, start_date: start, end_date: end, venue, category,
+      place: $('fPlace').value.trim() || (venue === 'M' ? '수원메쎄' : venue === 'C' ? '수원컨벤션센터' : ''),
+      url: $('fUrl').value.trim() || null, audience: $('fAud').value.trim() || null,
+      type: { expo: '박람회·전시', conf: '학회·비즈니스', fest: '공연·축제' }[category],
+      weight: venue === 'E' ? 1 : 2, b2b: category === 'conf', source: 'manual'
+    };
+    $('fSave').disabled = true;
+    const { error } = await sb.from('board_events').insert(row);
+    $('fSave').disabled = false;
+    if (error) {
+      $('fErr').textContent = /duplicate|unique/i.test(error.message) ? '같은 이름과 시작일의 행사가 이미 있어요.' : '저장하지 못했어요: ' + error.message;
+      return;
+    }
+    closeAdd();
+    toast('행사를 등록했어요.');
+    await refresh();
+  };
+
+  // ---------- 로그인 ----------
+  function showLogin() { $('login').classList.remove('hidden'); setTimeout(() => $('lEmail').focus(), 50); }
+  function hideLogin() { $('login').classList.add('hidden'); }
+  $('loginForm').onsubmit = async ev => {
+    ev.preventDefault();
+    $('lErr').textContent = '';
+    $('lBtn').disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({ email: $('lEmail').value.trim(), password: $('lPw').value });
+    $('lBtn').disabled = false;
+    if (error) { $('lErr').textContent = '이메일 또는 비밀번호가 맞지 않아요.'; return; }
+    $('lPw').value = '';
+    await startWith(data.session);
+  };
+  $('logoutBtn').onclick = async () => {
+    if (!$('logoutBtn').classList.contains('arm')) {
+      $('logoutBtn').classList.add('arm'); $('logoutBtn').textContent = '한 번 더 누르면 로그아웃';
+      setTimeout(() => { $('logoutBtn').classList.remove('arm'); $('logoutBtn').textContent = '로그아웃'; }, 4000);
+      return;
+    }
+    await sb.auth.signOut();
+    location.reload();
   };
 
   // 창 크기 맞춤: 높이 1080 기준, 남는 가로는 달력이 채움
@@ -330,14 +467,30 @@
   window.addEventListener('resize', fit);
   fit();
 
-  renderAll(true);
+  // ---------- 시작 ----------
+  async function refresh() {
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;   // 메모 입력 중이면 미룸
+    if (await loadData()) renderAll(false);
+  }
+  async function startWith(session) {
+    userEmail = (session && session.user && session.user.email) || '';
+    $('staffName').textContent = userEmail ? userEmail.split('@')[0] : '직원';
+    hideLogin();
+    if (await loadData()) { await migrateLocal(); renderAll(true); }
+  }
+
+  tickClock();
+  sb.auth.getSession().then(({ data }) => { if (data.session) startWith(data.session); else showLogin(); });
+  sb.auth.onAuthStateChange((evt) => { if (evt === 'SIGNED_OUT') showLogin(); });
+
   setInterval(() => {
     tickClock();
-    if (todayStr() !== lastDay) renderAll(true);   // 자정이 지나면 다시 계산
+    if (todayStr() !== lastDay && lastSync) renderAll(true);   // 자정이 지나면 다시 계산
   }, 15000);
-  // 30분마다 새로 불러오기 (메모 입력 중이면 미룸)
+  setInterval(refresh, 5 * 60 * 1000);                          // 5분마다 새 행사·검토 기록 반영
+  // 하루 한 번 새로 불러오기 (코드 수정 반영, 메모 입력 중이면 미룸)
   setInterval(() => {
-    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+    if (document.activeElement && ['TEXTAREA', 'INPUT'].includes(document.activeElement.tagName)) return;
     location.reload();
-  }, 30 * 60 * 1000);
+  }, 6 * 60 * 60 * 1000);
 })();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>호텔인스타 프런트 행사 보드</title>
-<link rel="stylesheet" href="css/board.css?v=6">
+<link rel="stylesheet" href="css/board.css?v=7">
 </head>
 <body>
 <div class="wrap">
@@ -18,7 +18,8 @@
       <h2>프런트 행사 보드</h2>
     </div>
     <div class="topr">
-      <span class="staff">직원 전용</span>
+      <span class="staff">직원 전용 · <b id="staffName">직원</b></span>
+      <button class="linkbtn" id="logoutBtn">로그아웃</button>
       <span class="vline"></span>
       <span class="date" id="today"></span>
       <span class="clock" id="clock"></span>
@@ -84,9 +85,59 @@
     <span>가격 변경은 판매 채널(VCMS)에서 별도 진행</span>
   </footer>
 </div>
+<!-- 로그인 -->
+<div class="overlay hidden" id="login">
+  <form class="lbox" id="loginForm" autocomplete="on">
+    <h2>프런트 행사 보드</h2>
+    <p>직원 계정으로 로그인해 주세요. 이 PC에서는 다음부터 자동으로 로그인돼요.</p>
+    <label>이메일<input type="email" id="lEmail" autocomplete="username" required></label>
+    <label>비밀번호<input type="password" id="lPw" autocomplete="current-password" required></label>
+    <div class="ferr" id="lErr"></div>
+    <button class="okbtn" id="lBtn" type="submit">로그인</button>
+  </form>
+</div>
+
+<!-- 행사 등록 -->
+<div class="overlay hidden" id="addModal">
+  <form class="lbox wide" id="addForm">
+    <h2>행사 등록</h2>
+    <label>행사명<input id="fName" placeholder="2026 수원 캠핑카쇼" required></label>
+    <div class="frow">
+      <label>시작일<input type="date" id="fStart" required></label>
+      <label>종료일<input type="date" id="fEnd"></label>
+    </div>
+    <div class="frow">
+      <label>장소
+        <select id="fVenue">
+          <option value="M">수원메쎄</option>
+          <option value="C">수원컨벤션센터</option>
+          <option value="E">그 외</option>
+        </select>
+      </label>
+      <label>종류
+        <select id="fCat">
+          <option value="expo">박람회</option>
+          <option value="conf">학회·비즈니스</option>
+          <option value="fest">공연·축제</option>
+        </select>
+      </label>
+    </div>
+    <label>장소 이름 (그 외일 때)<input id="fPlace" placeholder="수원화성 행궁광장"></label>
+    <label>예상 손님<input id="fAud" placeholder="전국 반려인·업체 관계자"></label>
+    <label>출처 링크<input id="fUrl" type="url" placeholder="https://"></label>
+    <div class="ferr" id="fErr"></div>
+    <div class="fbtns">
+      <button type="button" class="okbtn undo" id="fCancel">취소</button>
+      <button type="submit" class="okbtn" id="fSave">등록</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script src="data/events.js?v=6"></script>
-<script src="js/board.js?v=6"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/config.js?v=7"></script>
+<script src="data/holidays.js?v=7"></script>
+<script src="js/board.js?v=7"></script>
 </body>
 </html>
