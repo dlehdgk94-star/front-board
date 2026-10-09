@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>호텔인스타 프런트 행사 보드</title>
-<link rel="stylesheet" href="css/board.css?v=4">
+<link rel="stylesheet" href="css/board.css?v=5">
 </head>
 <body>
 <div class="wrap">
@@ -29,9 +29,8 @@
   <!-- 요약 줄 -->
   <section class="summary">
     <div class="sm"><span class="smk">14일 내 검토 대기</span><b class="gold" id="smPending">0</b><span class="smu">박</span></div>
-    <div class="sm"><span class="smk">행사 겹치는 밤</span><b class="gold" id="smOverlap">0</b><span class="smu">박</span></div>
-    <div class="sm"><span class="smk">검토 완료</span><b class="green" id="smDone">0</b><span class="smu">박</span></div>
     <div class="sm"><span class="smk">다음 대목</span><b class="gold" id="smPeak">-</b><span class="smu" id="smPeakName"></span></div>
+    <div class="sm"><span class="smk">검토 완료</span><b class="green" id="smDone">0</b><span class="smu">박</span></div>
     <div class="smnote">행사 일정 기준 검토 대상 · 실제 수요 예측 아님</div>
   </section>
 
@@ -45,12 +44,10 @@
         <span id="calTitle" class="ctitle"></span>
       </div>
       <div class="legend">
-        <span><i class="dot c-expo"></i>박람회</span>
-        <span><i class="dot c-conf"></i>학회·비즈니스</span>
-        <span><i class="dot c-fest"></i>공연·축제</span>
-        <span><i class="eve-sw"></i>전날 숙박</span>
-        <span><i class="ok-sw">✓</i>검토 완료</span>
-        <span class="lvl"><i class="sw n1"></i><i class="sw n2"></i><i class="sw n3"></i>숙박 수요</span>
+        <span><i class="lb b-expo"></i>박람회</span>
+        <span><i class="lb b-conf"></i>학회·비즈니스</span>
+        <span><i class="lb b-fest"></i>공연·축제</span>
+        <span><i class="eve-sw"></i>검토할 밤</span>
       </div>
       <div class="viewtg">
         <button id="vCal" class="on">달력</button>
@@ -82,19 +79,6 @@
     <section class="panel detail" id="detail"></section>
   </aside>
 
-  <!-- 아래: 30일 숙박 흐름 -->
-  <section class="panel flowp">
-    <div class="fhead">
-      <h3>앞으로 30일 · 숙박 수요 흐름</h3>
-      <div class="legend sm2">
-        <span><i class="sw n2"></i>행사 겹침</span>
-        <span><i class="tri"></i>전날 숙박</span>
-        <span><i class="gdot"></i>검토 완료</span>
-      </div>
-    </div>
-    <div class="flow" id="flow"></div>
-  </section>
-
   <footer class="foot">
     <span id="footL"></span>
     <span>가격 변경은 판매 채널(VCMS)에서 별도 진행</span>
@@ -102,7 +86,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data/events.js?v=4"></script>
-<script src="js/board.js?v=4"></script>
+<script src="data/events.js?v=5"></script>
+<script src="js/board.js?v=5"></script>
 </body>
 </html>
