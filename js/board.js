@@ -73,29 +73,35 @@
     document.getElementById('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  // ---- 달력 (이번 주 일요일부터 5주) ----
+  // ---- 달력 (이번 달 한 달) ----
   function renderCalendar(today) {
     const t = ymd(today);
-    const start = addDays(today, -today.getDay());
-    const last = addDays(start, 34);
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const start = addDays(first, -first.getDay());
+    const weeks = Math.ceil((first.getDay() + daysInMonth) / 7);
+    const cells = weeks * 7;
     document.getElementById('calTitle').textContent =
-      `행사 달력 · ${start.getMonth() + 1}월 ${start.getDate()}일 ~ ${last.getMonth() + 1}월 ${last.getDate()}일`;
+      `${today.getFullYear()}년 ${today.getMonth() + 1}월 행사 달력`;
+    document.getElementById('cal').dataset.weeks = weeks;
 
     let h = '';
     for (let i = 0; i < 7; i++) h += `<div class="wd ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${WD[i]}</div>`;
-    for (let i = 0; i < 35; i++) {
+    for (let i = 0; i < cells; i++) {
       const d = addDays(start, i);
+      const out = d.getMonth() !== today.getMonth();
       const s = ymd(d);
       const lv = level(score(s));
       const evs = eventsOn(s);
       const dow = d.getDay();
       const hol = HOLIDAYS[s];
       const nCls = hol || dow === 0 ? 'sun' : dow === 6 ? 'sat' : '';
-      const showMonth = d.getDate() === 1 || i === 0;
-      const cls = ['day', lv ? 'l' + lv : '', s === t ? 'today' : '', s < t ? 'past' : ''].join(' ');
-      const shown = evs.slice(0, evs.length > 3 ? 2 : 3).map(e =>
+      const showMonth = out && (d.getDate() === 1 || i === 0);
+      const cls = ['day', out ? 'out' : '', lv ? 'l' + lv : '', s === t ? 'today' : '', (s < t && !out) ? 'past' : ''].join(' ');
+      const cap = weeks === 6 ? 2 : 3;
+      const shown = evs.slice(0, evs.length > cap ? cap - 1 : cap).map(e =>
         `<div class="ev"><i class="dot" style="background:${VENUE_COLOR[e.venue]}"></i>${esc(shortName(e.name))}</div>`).join('');
-      const more = evs.length > 3 ? `<div class="ev more">+${evs.length - 2}개 더</div>` : '';
+      const more = evs.length > cap ? `<div class="ev more">+${evs.length - cap + 1}개 더</div>` : '';
       h += `<div class="${cls}">` +
         `<span class="n ${nCls}">${d.getDate()}</span>` +
         (showMonth ? `<span class="mon">${d.getMonth() + 1}월</span>` : '') +

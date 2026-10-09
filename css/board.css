@@ -45,6 +45,8 @@ body{width:1920px;height:1080px;color:var(--tx);overflow:hidden;
 .day.l1{background:var(--h1)}.day.l2{background:var(--h2)}.day.l3{background:var(--h3)}
 .day.today{border-color:var(--blue)}
 .day.past{filter:saturate(.25) brightness(.65)}
+.day.out{opacity:.35}
+.cal[data-weeks="6"] .day{height:82px}
 .ev{font-size:13.5px;line-height:1.38;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#EADFC6;margin-top:1px}
 .ev.more{color:var(--tx2)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
