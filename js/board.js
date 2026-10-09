@@ -132,7 +132,7 @@
     $('calTitle').textContent = `${first.getFullYear()}년 ${first.getMonth() + 1}월`;
 
     let h = '<div class="wdrow">';
-    for (let i = 0; i < 7; i++) h += `<div class="wd ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${WD[i]}</div>`;
+    for (let i = 0; i < 7; i++) h += `<div class="wd ${i === 0 || i >= 5 ? 'sun' : ''}">${WD[i]}</div>`;  // 금·토·일 같은 색
     h += '</div><div class="weeks" style="grid-template-rows:repeat(' + weeks + ',minmax(0,1fr))">';
 
     for (let w = 0; w < weeks; w++) {
@@ -173,7 +173,7 @@
         }
         const cls = ['day', out ? 'out' : '', past ? 'past' : '', ds === selected ? 'sel' : ''].join(' ');
         h += `<div class="${cls}" data-d="${ds}" style="grid-column:${i + 1}">` +
-          `<div class="dtop"><span class="dn ${ds === t ? 'today' : hol || dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''}">${d.getDate()}</span>` +
+          `<div class="dtop"><span class="dn ${ds === t ? 'today' : hol || dow === 0 || dow >= 5 ? 'sun' : ''}">${d.getDate()}</span>` +
           (hol ? `<span class="hol">${esc(hol)}</span>` : '') +
           (hidden[ds] ? `<span class="more">+${hidden[ds]}</span>` : '') + '</div>' +
           tag + '</div>';
