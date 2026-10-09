@@ -70,7 +70,6 @@
     let r = keys.length === 1
       ? `${VENUE_SHORT[keys[0]]} ${counts[keys[0]]}건`
       : keys.map(k => `${VENUE_SHORT[k]} ${counts[k]}`).join(' · ') + ' 겹침';
-    if (eveEvents(s).length) r += ' · 전날 숙박';
     return r;
   }
 
@@ -250,11 +249,7 @@
         let tag = '';
         // 검토 표시는 오른쪽과 같은 범위(다음 달 ~ 다다음 달) 안에서만
         if (!past && inAhead(ds) && isCandidate(ds)) {
-          if (isDone(ds)) tag = '<div class="tag done">✓ 검토 완료</div>';
-          else {
-            const n = eveEvents(ds).length;
-            tag = `<div class="tag">${n ? '전날 숙박' + (n > 1 ? ' · ' + n + '건' : '') : '숙박 검토'}</div>`;
-          }
+          tag = isDone(ds) ? '<div class="tag done">✓ 완료</div>' : '<div class="tag">검토</div>';
         }
         const cls = ['day', out ? 'out' : '', past ? 'past' : '', ds === selected ? 'sel' : ''].join(' ');
         h += `<div class="${cls}" data-d="${ds}" style="grid-column:${i + 1}">` +
@@ -334,7 +329,7 @@
       return `<div class="qrow ${s === selected ? 'sel' : ''}" data-d="${s}">` +
         `<div><div class="qd">${md(s)}<small>${WD[parse(s).getDay()]}</small></div>` +
         `<div class="qdd">D-${dn}</div></div>` +
-        `<div><div class="qr">${esc(reason(s))}</div><div class="qs">요금 검토 대기</div></div>` +
+        `<div class="qr">${esc(reason(s))}</div>` +
         `<div class="cb"></div></div>`;
     }).join('') : '<div class="qempty">두 달 치 대목을 모두 검토했어요.</div>') +
       (pending.length > 3 ? `<div class="qmore">+ ${pending.length - 3}박 더 · 위 작은 달력에서 날짜를 누르면 볼 수 있어요</div>` : '');
