@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>호텔인스타 프런트 행사 보드</title>
-<link rel="stylesheet" href="css/board.css?v=10">
+<link rel="stylesheet" href="css/board.css?v=11">
 </head>
 <body>
 <div class="wrap">
@@ -29,9 +29,10 @@
 
   <!-- 요약 줄 -->
   <section class="summary">
-    <div class="sm"><span class="smk">14일 내 검토 대기</span><b class="gold" id="smPending">0</b><span class="smu">박</span></div>
-    <div class="sm"><span class="smk">다음 대목</span><b class="gold" id="smPeak">-</b><span class="smu" id="smPeakName"></span></div>
-    <div class="sm"><span class="smk">검토 완료</span><b class="green" id="smDone">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk" id="smM1k">다음 달 대목</span><b class="gold" id="smM1">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk" id="smM2k">다다음 달 대목</span><b class="gold" id="smM2">0</b><span class="smu">박</span></div>
+    <div class="sm"><span class="smk">가장 가까운 대목</span><b class="gold" id="smPeak">-</b><span class="smu" id="smPeakName"></span></div>
+    <div class="sm"><span class="smk">요금 검토 완료</span><b class="green" id="smDone">0</b><span class="smu">/ <span id="smTotal">0</span>박</span></div>
     <div class="smnote">행사 일정 기준 검토 대상 · 실제 수요 예측 아님</div>
   </section>
 
@@ -67,13 +68,10 @@
   <aside class="side">
     <section class="panel queue">
       <div class="shead">
-        <h3>먼저 검토할 숙박일</h3>
-        <select id="range">
-          <option value="7">7일 이내</option>
-          <option value="14" selected>14일 이내</option>
-          <option value="30">30일 이내</option>
-        </select>
+        <h3>다음 달 · 다다음 달 대목</h3>
+        <small class="shint">진할수록 숙박 수요 높음</small>
       </div>
+      <div class="minis" id="minis"></div>
       <div id="queue"></div>
     </section>
 
@@ -143,6 +141,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/config.js?v=7"></script>
 <script src="data/holidays.js?v=7"></script>
-<script src="js/board.js?v=10"></script>
+<script src="js/board.js?v=11"></script>
 </body>
 </html>

@@ -148,17 +148,28 @@
   // ---------- 상태 ----------
   let monthOffset = 0;
   let view = 'cal';
-  let range = 14;
   let selected = null;
   let backTimer = null;
 
   const todayStr = () => ymd(new Date());
 
-  function queueList(t, n) {
+  // 미리 볼 범위: 다음 달 1일 ~ 다다음 달 말일 (이번 달은 이미 아는 일정이라 제외)
+  function aheadRange() {
+    const n = parse(todayStr());
+    return [ymd(new Date(n.getFullYear(), n.getMonth() + 1, 1)), ymd(new Date(n.getFullYear(), n.getMonth() + 3, 0))];
+  }
+  const inAhead = s => { const [a, b] = aheadRange(); return s >= a && s <= b; };
+  function aheadList() {
+    const [a, b] = aheadRange();
     const out = [];
-    for (let i = 0; i < n; i++) { const s = shift(t, i); if (isCandidate(s)) out.push(s); }
+    for (let s = a; s <= b; s = shift(s, 1)) if (isCandidate(s)) out.push(s);
     return out;
   }
+  const monthPeaks = (y, m) => {           // 그 달에서 수요 '보통' 이상인 밤 수
+    let n = 0;
+    for (let d = new Date(y, m, 1); d.getMonth() === m; d.setDate(d.getDate() + 1)) if (nightLevel(ymd(d)) >= 2) n++;
+    return n;
+  };
 
   // ---------- 상단 ----------
   function renderTop() {
@@ -166,18 +177,25 @@
     const d = parse(t);
     $('today').textContent = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${WD[d.getDay()]}요일${HOLIDAYS[t] ? ' · ' + HOLIDAYS[t] : ''}`;
 
-    const q14 = queueList(t, 14);
-    $('smPending').textContent = q14.filter(s => !isDone(s)).length;
-    $('smDone').textContent = q14.filter(isDone).length;
+    const m1 = new Date(d.getFullYear(), d.getMonth() + 1, 1), m2 = new Date(d.getFullYear(), d.getMonth() + 2, 1);
+    $('smM1k').textContent = `${m1.getMonth() + 1}월 대목`;
+    $('smM2k').textContent = `${m2.getMonth() + 1}월 대목`;
+    $('smM1').textContent = monthPeaks(m1.getFullYear(), m1.getMonth());
+    $('smM2').textContent = monthPeaks(m2.getFullYear(), m2.getMonth());
+    const al = aheadList();
+    $('smDone').textContent = al.filter(isDone).length;
+    $('smTotal').textContent = al.length;
     let peak = null;
-    for (let i = 0; i < 60 && !peak; i++) { const s = shift(t, i); if (nightLevel(s) === 3) peak = s; }
+    const [, aEnd] = aheadRange();
+    const [aStart] = aheadRange();
+    for (let s = aStart; s <= aEnd && !peak; s = shift(s, 1)) if (nightLevel(s) === 3) peak = s;   // 다음 달부터 찾음
     if (peak) {
       const dn = diff(t, peak);
       $('smPeak').textContent = dn === 0 ? '오늘 밤' : `D-${dn}`;
       $('smPeakName').textContent = `${mdw(peak)} 밤 · ${nightEvents(peak).map(e => shortName(e.name)).slice(0, 2).join(', ')}`;
     } else {
       $('smPeak').textContent = '없음';
-      $('smPeakName').textContent = '60일 이내';
+      $('smPeakName').textContent = '두 달 안에 없음';
     }
   }
 
@@ -230,8 +248,8 @@
         const dow = d.getDay();
         const hol = HOLIDAYS[ds];
         let tag = '';
-        // 검토 표시는 오른쪽 목록과 같은 범위(7/14/30일) 안에서만
-        if (!past && diff(t, ds) < range && isCandidate(ds)) {
+        // 검토 표시는 오른쪽과 같은 범위(다음 달 ~ 다다음 달) 안에서만
+        if (!past && inAhead(ds) && isCandidate(ds)) {
           if (isDone(ds)) tag = '<div class="tag done">✓ 검토 완료</div>';
           else {
             const n = eveEvents(ds).length;
@@ -284,21 +302,42 @@
     $('elist').innerHTML = h;
   }
 
-  // ---------- 오른쪽: 검토 목록 ----------
+  // ---------- 오른쪽: 다음 달 · 다다음 달 미니 달력 + 대목 목록 ----------
+  function miniMonth(y, m) {
+    const t = todayStr();
+    const first = new Date(y, m, 1);
+    let h = `<div class="mini"><div class="mtitle">${y !== parse(t).getFullYear() ? y + '년 ' : ''}${m + 1}월</div><div class="mgrid">`;
+    for (let i = 0; i < 7; i++) h += `<span class="mw ${i === 0 || i >= 5 ? 'sun' : ''}">${WD[i]}</span>`;
+    for (let i = 0; i < first.getDay(); i++) h += '<span class="mc blank"></span>';
+    for (let d = new Date(first); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
+      const s = ymd(d), lv = nightLevel(s), dow = d.getDay();
+      const cls = ['mc', lv >= 3 ? 'p3' : lv === 2 ? 'p2' : lv === 1 ? 'p1' : '',
+        HOLIDAYS[s] || dow === 0 || dow >= 5 ? 'we' : '', isDone(s) ? 'done' : '', s === selected ? 'sel' : ''].join(' ');
+      h += `<span class="${cls}" data-d="${s}" title="${esc(nightEvents(s).map(e => shortName(e.name)).join(', '))}">${d.getDate()}</span>`;
+    }
+    return h + '</div></div>';
+  }
+
   function renderQueue() {
     const t = todayStr();
-    const q = queueList(t, range);
-    if (!q.length) { $('queue').innerHTML = `<div class="qempty">${range}일 안에 검토할 숙박일이 없어요.</div>`; return; }
-    const show = q.slice(0, 4);
-    $('queue').innerHTML = show.map(s => {
+    const n = parse(t);
+    const m1 = new Date(n.getFullYear(), n.getMonth() + 1, 1), m2 = new Date(n.getFullYear(), n.getMonth() + 2, 1);
+    $('minis').innerHTML = miniMonth(m1.getFullYear(), m1.getMonth()) + miniMonth(m2.getFullYear(), m2.getMonth());
+    $('minis').querySelectorAll('.mc[data-d]').forEach(el => { el.onclick = () => select(el.dataset.d); });
+
+    const all = aheadList();
+    const pending = all.filter(s => !isDone(s));
+    if (!all.length) { $('queue').innerHTML = '<div class="qempty">다음 두 달 안에 검토할 대목이 아직 없어요.</div>'; return; }
+    const show = pending.slice(0, 3);
+    $('queue').innerHTML = (show.length ? show.map(s => {
       const dn = diff(t, s);
-      const done = isDone(s);
       return `<div class="qrow ${s === selected ? 'sel' : ''}" data-d="${s}">` +
         `<div><div class="qd">${md(s)}<small>${WD[parse(s).getDay()]}</small></div>` +
-        `<div class="qdd ${dn === 0 ? 'today' : ''}">${dn === 0 ? '오늘' : 'D-' + dn}</div></div>` +
-        `<div><div class="qr">${esc(reason(s))}</div><div class="qs ${done ? 'done' : ''}">${done ? '검토 완료' : '검토 대기'}</div></div>` +
-        `<div class="cb ${done ? 'on' : ''}">${done ? '✓' : ''}</div></div>`;
-    }).join('') + (q.length > 4 ? `<div class="qmore">+ ${q.length - 4}박 더 · 달력에서 날짜를 누르면 볼 수 있어요</div>` : '');
+        `<div class="qdd">D-${dn}</div></div>` +
+        `<div><div class="qr">${esc(reason(s))}</div><div class="qs">요금 검토 대기</div></div>` +
+        `<div class="cb"></div></div>`;
+    }).join('') : '<div class="qempty">두 달 치 대목을 모두 검토했어요.</div>') +
+      (pending.length > 3 ? `<div class="qmore">+ ${pending.length - 3}박 더 · 위 작은 달력에서 날짜를 누르면 볼 수 있어요</div>` : '');
     $('queue').querySelectorAll('.qrow').forEach(el => { el.onclick = () => select(el.dataset.d); });
   }
 
@@ -362,7 +401,7 @@
     const t = todayStr();
     lastDay = t;
     if (resetSel || !selected) {
-      const q = queueList(t, range);
+      const q = aheadList();
       selected = q.find(s => !isDone(s)) || q[0] || t;
     }
     renderTop(); renderCalendar(); renderList(); renderQueue(); renderDetail(); tickClock();
@@ -398,7 +437,6 @@
   }
   $('vCal').onclick = () => setView('cal');
   $('vList').onclick = () => setView('list');
-  $('range').onchange = e => { range = Number(e.target.value); renderTop(); renderQueue(); renderCalendar(); };
   // ---------- 행사 등록 창 ----------
   function openAdd() {
     $('addForm').reset();

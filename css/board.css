@@ -270,3 +270,25 @@ a.okbtn.linkout{display:flex;align-items:center;justify-content:center;text-deco
 .dot.v-C{background:#5B9BF0}.dot.v-M{background:#22B8A6}.dot.v-E{background:#E0609A}
 .lb.v-C{background:#3B7DDD}.lb.v-M{background:#0E9384}.lb.v-E{background:#C23B7A}
 .evsub{font-size:13px;color:var(--tx2);font-weight:700}
+
+/* 다음 달 · 다다음 달 미니 달력 */
+.sm:nth-child(3){border-right:1px solid var(--line2)}
+.sm:nth-child(4){border-right:0}
+.shint{font-size:13px;color:var(--tx3)}
+.minis{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px}
+.mtitle{font-size:16px;font-weight:800;margin-bottom:6px}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mw{font-size:11.5px;color:var(--tx3);text-align:center;font-weight:700}
+.mw.sun{color:#FF8A8A}
+.mc{height:27px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;border-radius:6px;color:var(--tx2);cursor:pointer;position:relative}
+.mc.blank{cursor:default}
+.mc.we{color:#FF9C9C}
+.mc.p1{background:#454C5B;color:var(--tx)}
+.mc.p2{background:#7A5A22;color:#FFE2A8}
+.mc.p3{background:var(--gold);color:#2A1A00}
+.mc.done::after{content:"";position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:#4ADE80}
+.mc.sel{outline:2px solid #fff;outline-offset:0}
+.mc:hover{outline:1px solid var(--tx3)}
+.queue .qrow{padding:8px 12px;margin-bottom:6px}
+.okbtn{flex:none}
+.detail textarea{min-height:70px}
