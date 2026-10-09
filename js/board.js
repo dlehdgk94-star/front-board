@@ -246,7 +246,7 @@
       placed.forEach(x => {
         const c1 = diff(ws, x.a) + 1, c2 = diff(ws, x.b) + 2;
         const cont = (x.a !== x.e.start ? ' contL' : '') + (x.b !== x.e.end ? ' contR' : '');
-        h += `<div class="bar b-${cat(x.e)}${cont}${x.e.source === 'ai' ? ' ai' : ''}${showPast && x.b < t ? ' pastbar' : ''}" data-d="${x.a}" ` +
+        h += `<div class="bar b-${cat(x.e)}${cont}${x.e.source === 'ai' ? ' ai' : ''}${showPast && x.b < t ? ' pastbar' : ''}" data-id="${x.e.id}" ` +
           `style="grid-column:${c1}/${c2};grid-row:${x.L + 2}" title="${esc(x.e.name)}">${x.e.source === 'ai' && x.a === x.e.start ? '<em>AI</em>' : ''}${esc(shortName(x.e.name))}</div>`;
       });
       h += '</div>';
@@ -255,7 +255,7 @@
     const cal = $('cal');
     cal.innerHTML = h;
     cal.querySelectorAll('.day').forEach(el => { el.onclick = () => select(el.dataset.d); });
-    cal.querySelectorAll('.bar').forEach(el => { el.onclick = ev => { ev.stopPropagation(); select(shift(el.dataset.d, -1)); }; });
+    cal.querySelectorAll('.bar').forEach(el => { el.onclick = ev => { ev.stopPropagation(); openEvent(el.dataset.id); }; });
   }
 
   // ---------- 목록 보기 ----------
@@ -381,6 +381,7 @@
   $('calToday').onclick = () => moveMonth(0);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !$('addModal').classList.contains('hidden')) { $('addModal').classList.add('hidden'); return; }
+    if (e.key === 'Escape' && !$('evModal').classList.contains('hidden')) { closeEvent(); return; }
     if (['TEXTAREA', 'SELECT', 'INPUT'].includes(e.target.tagName)) return;
     if (e.key === 'ArrowRight') moveMonth(1);
     if (e.key === 'ArrowLeft') moveMonth(-1);
@@ -431,6 +432,52 @@
     toast('행사를 등록했어요.');
     await refresh();
   };
+
+  // ---------- 행사 정보 창 (달력 막대를 누르면 열림) ----------
+  function openEvent(id) {
+    const e = EVENTS.find(x => String(x.id) === String(id));
+    if (!e) return;
+    const t = todayStr();
+    const dn = diff(t, e.start);
+    const when = e.start <= t ? (e.end >= t ? '진행 중' : '끝남') : (dn === 0 ? '오늘 시작' : `D-${dn}`);
+    const nightsFrom = shift(e.start, -1), nightsTo = shift(e.end, -1);
+    $('evBody').innerHTML =
+      `<div class="evtop"><span class="evcat b-${cat(e)}">${CAT_NAME[cat(e)]}</span>` +
+      `<span class="evwhen">${when}</span>${e.source === 'ai' ? '<em class="aichip">AI가 찾은 행사</em>' : ''}</div>` +
+      `<h2>${esc(e.name)}</h2>` +
+      `<dl class="evdl">` +
+      `<dt>기간</dt><dd>${mdw(e.start)}${e.end !== e.start ? ' – ' + mdw(e.end) : ''}</dd>` +
+      `<dt>장소</dt><dd>${esc(e.place || VENUE_NAME[e.venue] || '-')}</dd>` +
+      `<dt>숙박하는 밤</dt><dd>${mdw(nightsFrom)} – ${mdw(nightsTo)} 밤</dd>` +
+      (e.type ? `<dt>종류</dt><dd>${esc(e.type)}</dd>` : '') +
+      (e.audience ? `<dt>예상 손님</dt><dd>${esc(e.audience)}</dd>` : '') +
+      (e.keywords && e.keywords.length ? `<dt>숙박 키워드</dt><dd>${e.keywords.map(esc).join(', ')}</dd>` : '') +
+      `</dl>` +
+      `<div class="fbtns">` +
+      (e.url ? `<a class="okbtn linkout" href="${esc(e.url)}" target="_blank" rel="noopener">공식 일정 열기 ↗</a>`
+             : `<span class="okbtn undo nolink">출처 링크 없음</span>`) +
+      `<button type="button" class="okbtn undo" id="evNight">전날 밤 검토하기</button>` +
+      `</div>` +
+      `<div class="evfoot"><button type="button" class="hidebtn" id="evHide">이 행사 숨기기</button><button type="button" class="linkbtn" id="evClose">닫기</button></div>`;
+    $('evModal').classList.remove('hidden');
+    $('evClose').onclick = closeEvent;
+    $('evNight').onclick = () => { closeEvent(); select(nightsFrom >= t ? nightsFrom : t); };
+    $('evHide').onclick = async () => {
+      const b = $('evHide');
+      if (!b.classList.contains('arm')) {
+        b.classList.add('arm'); b.textContent = '한 번 더 누르면 숨겨요';
+        setTimeout(() => { if (b) { b.classList.remove('arm'); b.textContent = '이 행사 숨기기'; } }, 4000);
+        return;
+      }
+      const { error } = await sb.from('board_events').update({ status: 'hidden', updated_at: new Date().toISOString() }).eq('id', e.id);
+      if (error) { toast('숨기지 못했어요. 다시 시도해 주세요.'); return; }
+      closeEvent();
+      toast('행사를 숨겼어요.');
+      await refresh();
+    };
+  }
+  const closeEvent = () => $('evModal').classList.add('hidden');
+  $('evModal').onclick = ev => { if (ev.target.id === 'evModal') closeEvent(); };
 
   // ---------- 로그인 ----------
   function showLogin() { $('login').classList.remove('hidden'); setTimeout(() => $('lEmail').focus(), 50); }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>호텔인스타 프런트 행사 보드</title>
-<link rel="stylesheet" href="css/board.css?v=8">
+<link rel="stylesheet" href="css/board.css?v=9">
 </head>
 <body>
 <div class="wrap">
@@ -133,11 +133,16 @@
   </form>
 </div>
 
+<!-- 행사 정보 -->
+<div class="overlay hidden" id="evModal">
+  <div class="lbox wide evbox" id="evBody"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/config.js?v=7"></script>
 <script src="data/holidays.js?v=7"></script>
-<script src="js/board.js?v=7"></script>
+<script src="js/board.js?v=9"></script>
 </body>
 </html>
