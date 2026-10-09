@@ -101,7 +101,7 @@
       const hol = HOLIDAYS[s];
       const nCls = hol || dow === 0 ? 'sun' : dow === 6 ? 'sat' : '';
       const showMonth = out && (d.getDate() === 1 || i === 0);
-      const cls = ['day', out ? 'out' : '', lv ? 'l' + lv : '', s === t ? 'today' : '', (s < t && !out) ? 'past' : ''].join(' ');
+      const cls = ['day', hol ? 'holi' : '', out ? 'out' : '', lv ? 'l' + lv : '', s === t ? 'today' : '', (s < t && !out) ? 'past' : ''].join(' ');
       const cap = weeks === 6 ? 2 : 3;
       const shown = evs.slice(0, evs.length > cap ? cap - 1 : cap).map(e =>
         `<div class="ev"><i class="dot" style="background:${VENUE_COLOR[e.venue]}"></i>${esc(shortName(e.name))}</div>`).join('');
