@@ -261,3 +261,12 @@ a.okbtn.linkout{display:flex;align-items:center;justify-content:center;text-deco
 .evfoot{display:flex;justify-content:space-between;align-items:center}
 .evfoot .hidebtn{float:none;margin:0}
 .evfoot .linkbtn{font-size:14px}
+
+/* 장소 기준 색: 컨벤션센터 파랑 · 메쎄 청록 · 그 외 분홍 */
+.v-C{background:#3B7DDD;color:#fff}
+.v-M{background:#0E9384;color:#fff}
+.v-E{background:#C23B7A;color:#fff}
+.bar.v-C,.bar.v-M,.bar.v-E{color:#fff;box-shadow:none}
+.dot.v-C{background:#5B9BF0}.dot.v-M{background:#22B8A6}.dot.v-E{background:#E0609A}
+.lb.v-C{background:#3B7DDD}.lb.v-M{background:#0E9384}.lb.v-E{background:#C23B7A}
+.evsub{font-size:13px;color:var(--tx2);font-weight:700}

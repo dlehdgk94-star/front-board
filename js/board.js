@@ -6,6 +6,8 @@
   const WD = '일월화수목금토';
   const CAT_NAME = { expo: '박람회', conf: '학회·비즈니스', fest: '공연·축제' };
   const VENUE_NAME = { M: '수원메쎄', C: '수원컨벤션센터' };
+  const VENUE_SHORT = { C: '컨벤션센터', M: '메쎄', E: '그 외' };
+  const vk = e => (e.venue === 'C' || e.venue === 'M') ? e.venue : 'E';   // 막대 색은 장소 기준
 
   // ---------- 날짜 도우미 (프런트 PC 현지 시간) ----------
   const pad = n => String(n).padStart(2, '0');
@@ -63,11 +65,11 @@
   function reason(s) {
     const evs = nightEvents(s);
     const counts = {};
-    evs.forEach(e => { const c = cat(e); counts[c] = (counts[c] || 0) + 1; });
-    const keys = Object.keys(counts);
+    evs.forEach(e => { const v = vk(e); counts[v] = (counts[v] || 0) + 1; });
+    const keys = ['C', 'M', 'E'].filter(k => counts[k]);
     let r = keys.length === 1
-      ? `${CAT_NAME[keys[0]]} ${counts[keys[0]]}건`
-      : keys.map(k => CAT_NAME[k].split('·')[0]).join('·') + ' 일정 중복';
+      ? `${VENUE_SHORT[keys[0]]} ${counts[keys[0]]}건`
+      : keys.map(k => `${VENUE_SHORT[k]} ${counts[k]}`).join(' · ') + ' 겹침';
     if (eveEvents(s).length) r += ' · 전날 숙박';
     return r;
   }
@@ -246,7 +248,7 @@
       placed.forEach(x => {
         const c1 = diff(ws, x.a) + 1, c2 = diff(ws, x.b) + 2;
         const cont = (x.a !== x.e.start ? ' contL' : '') + (x.b !== x.e.end ? ' contR' : '');
-        h += `<div class="bar b-${cat(x.e)}${cont}${x.e.source === 'ai' ? ' ai' : ''}${showPast && x.b < t ? ' pastbar' : ''}" data-id="${x.e.id}" ` +
+        h += `<div class="bar v-${vk(x.e)}${cont}${x.e.source === 'ai' ? ' ai' : ''}${showPast && x.b < t ? ' pastbar' : ''}" data-id="${x.e.id}" ` +
           `style="grid-column:${c1}/${c2};grid-row:${x.L + 2}" title="${esc(x.e.name)}">${x.e.source === 'ai' && x.a === x.e.start ? '<em>AI</em>' : ''}${esc(shortName(x.e.name))}</div>`;
       });
       h += '</div>';
@@ -273,7 +275,7 @@
       if ((e.weight || 1) >= 2 && dn >= 10 && dn <= 16) chips.push('<span class="chip blog">블로그 글 올릴 때</span>');
       return `<div class="erow">` +
         `<span class="edd ${ongoing ? 'now' : peak >= 2 ? 'hot' : ''}">${ongoing ? '진행중' : 'D-' + dn}</span>` +
-        `<span class="ename"><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</span>` +
+        `<span class="ename"><i class="dot v-${vk(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</span>` +
         `<span class="emeta">${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''}</span>` +
         `<span class="emeta">${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
         `<span class="emeta">${md(shift(e.start, -1))} – ${md(shift(e.end, -1))} 밤</span>` +
@@ -309,7 +311,7 @@
     const rec = REV[s] || {};
     const tag = eve.length ? '<span class="dtag">행사 전날</span>' : evs.length ? '<span class="dtag mid">행사 기간</span>' : '';
     const list = evs.length
-      ? evs.map(e => `<div class="dev"><b><i class="dot c-${cat(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</b>` +
+      ? evs.map(e => `<div class="dev"><b><i class="dot v-${vk(e)}"></i>${esc(shortName(e.name))}${e.source === 'ai' ? '<em class="aichip">AI</em>' : ''}</b>` +
           `<span>${md(e.start)}${e.end !== e.start ? ' – ' + md(e.end) : ''} · ${esc(VENUE_NAME[e.venue] || e.place)}</span>` +
           (e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">공식 일정 ↗</a>` : '') +
           `<button class="hidebtn" data-id="${e.id}">숨기기</button></div>`).join('')
@@ -442,7 +444,7 @@
     const when = e.start <= t ? (e.end >= t ? '진행 중' : '끝남') : (dn === 0 ? '오늘 시작' : `D-${dn}`);
     const nightsFrom = shift(e.start, -1), nightsTo = shift(e.end, -1);
     $('evBody').innerHTML =
-      `<div class="evtop"><span class="evcat b-${cat(e)}">${CAT_NAME[cat(e)]}</span>` +
+      `<div class="evtop"><span class="evcat v-${vk(e)}">${VENUE_NAME[e.venue] || '그 외 장소'}</span><span class="evsub">${CAT_NAME[cat(e)]}</span>` +
       `<span class="evwhen">${when}</span>${e.source === 'ai' ? '<em class="aichip">AI가 찾은 행사</em>' : ''}</div>` +
       `<h2>${esc(e.name)}</h2>` +
       `<dl class="evdl">` +
