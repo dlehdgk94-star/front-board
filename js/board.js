@@ -384,6 +384,10 @@
   function select(s) {
     selected = s;
     renderCalendar(); renderQueue(); renderDetail();
+    // 휴대폰: 날짜를 누르면 바로 아래 '숙박 검토' 칸으로 이동
+    if (document.documentElement.classList.contains('m')) {
+      $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   // ---------- 전체 ----------
@@ -534,8 +538,18 @@
   };
 
   // 창 크기 맞춤: 높이 1080 기준, 남는 가로는 달력이 채움
+  // 폭이 좁은 화면(휴대폰)은 축소하지 않고 세로로 쌓는 배치 (css 의 html.m 규칙)
   function fit() {
     const W = window.innerWidth, H = window.innerHeight;
+    // innerWidth 는 휴대폰에서 큰 화면을 축소해 보여줄 때 1920 처럼 커질 수 있어서, 레이아웃 폭(media query) 기준으로 판단
+    const mobile = window.matchMedia('(max-width: 819px)').matches;
+    document.documentElement.classList.toggle('m', mobile);
+    if (mobile) {
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.transform = '';
+      return;
+    }
     let k = H / 1080;
     if (W / k < 1600) k = W / 1600;
     document.body.style.width = `${W / k}px`;
